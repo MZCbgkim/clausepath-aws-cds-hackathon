@@ -1,0 +1,222 @@
+{
+  "about": "How the sample policy's clauses depend on each other. [from, to, type]: 'from' <type> 'to'. Same clause IDs in every language. Explicit [ID] mentions inside a clause are added as 'cites'; FAQ answers 'explain' the clauses they cite.",
+  "types": {
+    "requires": {
+      "en": "Requires",
+      "ko": "조건",
+      "color": "#a78bfa"
+    },
+    "limit": {
+      "en": "Limit",
+      "ko": "한도",
+      "color": "#fbbf24"
+    },
+    "defines": {
+      "en": "Defined by",
+      "ko": "정의",
+      "color": "#22d3ee"
+    },
+    "cause": {
+      "en": "Causes",
+      "ko": "사유",
+      "color": "#38bdf8"
+    },
+    "lists": {
+      "en": "Lists",
+      "ko": "항목",
+      "color": "#60a5fa"
+    },
+    "applies": {
+      "en": "Applies",
+      "ko": "적용",
+      "color": "#34d399"
+    },
+    "excludes": {
+      "en": "Excludes",
+      "ko": "제외",
+      "color": "#fb7185"
+    },
+    "extends": {
+      "en": "Extends",
+      "ko": "연장",
+      "color": "#4ade80"
+    },
+    "contrast": {
+      "en": "Contrasts",
+      "ko": "대비",
+      "color": "#f472b6"
+    },
+    "claims": {
+      "en": "Claim step",
+      "ko": "청구",
+      "color": "#818cf8"
+    },
+    "decides": {
+      "en": "Decides",
+      "ko": "결정",
+      "color": "#c084fc"
+    },
+    "cites": {
+      "en": "Mentions",
+      "ko": "언급",
+      "color": "#94a3b8"
+    },
+    "explains": {
+      "en": "Explains",
+      "ko": "설명",
+      "color": "#e2e8f0"
+    }
+  },
+  "relations": [
+    [
+      "TD-1",
+      "PLAN-1",
+      "requires"
+    ],
+    [
+      "TD-1",
+      "PLAN-2",
+      "limit"
+    ],
+    [
+      "TD-1",
+      "DEF-5",
+      "defines"
+    ],
+    [
+      "TD-1",
+      "DEF-2",
+      "defines"
+    ],
+    [
+      "TD-1",
+      "DEF-6",
+      "defines"
+    ],
+    [
+      "TD-1",
+      "DEF-7",
+      "defines"
+    ],
+    [
+      "TD-1",
+      "DEF-3",
+      "defines"
+    ],
+    [
+      "DEF-5",
+      "TD-2",
+      "cause"
+    ],
+    [
+      "DEF-5",
+      "DEF-4",
+      "defines"
+    ],
+    [
+      "DEF-7",
+      "TD-3",
+      "lists"
+    ],
+    [
+      "TD-3",
+      "PLAN-2",
+      "limit"
+    ],
+    [
+      "TD-3",
+      "TD-5",
+      "applies"
+    ],
+    [
+      "TD-4",
+      "TD-3",
+      "excludes"
+    ],
+    [
+      "TD-6",
+      "DEF-2",
+      "extends"
+    ],
+    [
+      "TD-6",
+      "TD-1",
+      "applies"
+    ],
+    [
+      "TD-6",
+      "PLAN-2",
+      "limit"
+    ],
+    [
+      "EX-1",
+      "TD-1",
+      "excludes"
+    ],
+    [
+      "EX-2",
+      "TD-1",
+      "excludes"
+    ],
+    [
+      "EX-3",
+      "TD-1",
+      "excludes"
+    ],
+    [
+      "EX-3",
+      "DEF-2",
+      "defines"
+    ],
+    [
+      "EX-3",
+      "TD-6",
+      "contrast"
+    ],
+    [
+      "CL-1",
+      "TD-1",
+      "claims"
+    ],
+    [
+      "CL-2",
+      "CL-1",
+      "claims"
+    ],
+    [
+      "CL-3",
+      "TD-1",
+      "claims"
+    ],
+    [
+      "CL-4",
+      "CL-1",
+      "requires"
+    ],
+    [
+      "CL-5",
+      "TD-1",
+      "decides"
+    ],
+    [
+      "EX-2",
+      "DEF-1",
+      "defines"
+    ],
+    [
+      "CL-1",
+      "DEF-1",
+      "requires"
+    ]
+  ],
+  "titles": {
+    "PLAN-1": {
+      "en": "Plans with delay cover",
+      "ko": "지연 담보 플랜"
+    },
+    "PLAN-2": {
+      "en": "Limits by plan",
+      "ko": "플랜별 보상 한도"
+    }
+  }
+}

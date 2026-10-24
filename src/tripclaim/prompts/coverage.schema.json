@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "cited_clauses", "covered_expenses", "not_covered_expenses", "checklist", "clarifying_question", "reply"],
+  "properties": {
+    "status": {"type": "string", "enum": ["likely_covered", "likely_not_covered", "needs_info", "review"]},
+    "cited_clauses": {"type": "array", "items": {"type": "string"}},
+    "covered_expenses": {"type": "array", "items": {"type": "string"}},
+    "not_covered_expenses": {"type": "array", "items": {"type": "string"}},
+    "checklist": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["item", "why", "when"],
+        "properties": {
+          "item": {"type": "string", "enum": ["airline_letter", "original_eticket", "replacement_boarding_pass", "expense_receipts", "claim_form", "photo_id"]},
+          "why": {"type": "string"},
+          "when": {"type": "string", "enum": ["now", "after_return", "anytime"]}
+        }
+      }
+    },
+    "clarifying_question": {"type": ["string", "null"]},
+    "reply": {"type": "string"}
+  }
+}

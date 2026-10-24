@@ -1,0 +1,84 @@
+# Wording that promises an outcome to a traveler (금융소비자보호법: 단정적 판단 제공 금지).
+# One regular expression per line, matched case-insensitively against every message staff or the agent send.
+# Compliance edits this file; tests/test_banned_wording.py keeps the examples that must and must not match.
+가능성이 높
+보상 ?(?:됩니다|돼요|되어요|될 거예요|될 겁니다|해 ?드릴게요|해 ?드립니다|가능합니다|가능해요)
+보상 ?받(?:으실|을|으세요) 수 있
+지급(?:됩니다|돼요|되어요|될 거예요|될 겁니다|해 ?드릴게요|해 ?드립니다)
+입금(?:됩니다|돼요|될 거예요|될 겁니다|될 예정|해 ?드릴게요|해 ?드려요|해 ?드립니다)
+(?:지급|보상|입금)해 ?(?:요|드려요)(?![가-힣])
+보상 ?대상(?:입니다|이에요|이세요)
+(?:보상|보험금|돈|금액|전액)[을를은는이가으로]* ?(?:다 )?받으실 수 있
+(?:지급|환급|돌려|보상|환불) ?받으실 수 있
+\$[\d,.]+[을를은는이가]? ?(?:다 )?받으실 수 있
+(?:전액|보험금|돈|보상금|나머지)[이가은는도]? ?(?:다 |모두 |곧 )?나(?:와요|옵니다|올 거예요|올 겁니다)
+(?:지급|보상|입금|승인|환급)될 예정
+승인될 (?:거예요|겁니다|거에요)
+# a date or day promised for the money ("10/14에 들어와요", "내일 지급돼요")
+(?:\d|일|\)|내일|모레|오늘|이번 주|다음 주|곧|금방)(?:에|까지|중에?|쯤|경|안에|내로)? ?(?:돈이 |보험금이 )?들어(?:와요|올 거예요|옵니다|갑니다|가요|올게요)
+(?:\d|\))(?:일)?(?:에|까지|쯤|경|안에|내로)? ?나(?:와요|올 거예요|옵니다|올 겁니다)
+(?:내일|모레|오늘|이번 주|다음 주|곧|\d일|요일)(?:에|까지|중에?|쯤|경|안에|내로)? ?(?:지급|입금|보상) ?(?:돼|됩|될|해|받)
+(?:\d|일|\))(?:쯤|경|안에|내로) ?입금 예정
+(?:꼭|반드시|틀림없이|확실히|무조건|100%) ?(?:보상|지급|입금|들어)
+보장합니다|틀림없|무조건
+걱정 ?(?:마세요|안 하셔도)
+you(?: will|'ll|’ll) (?:get|receive|be paid|be reimbursed)(?! a (?:decision|reply|message|link|text|reply|call))
+will be (?:paid|reimbursed|covered|compensated|refunded)
+you(?:'ll|’ll| will) be (?:compensated|refunded)
+we(?:'ll|’ll| will) (?:pay|reimburse|refund|cover)\b
+(?:you're|you are|you’re|it's|it’s|it is|this is|that's|that is|your [\w' ]{1,30} (?:is|are)) (?:definitely |fully |all )?covered\b
+(?<!not )(?<!no )(?<!cannot )(?<!can't )(?<!can’t )(?<!don't )(?<!don’t )guarantee
+definitely (?:be )?(?:covered|paid|get|receive|reimbursed|approved|refunded)
+(?<!not )likely covered
+don't worry
+# general forms (round 11): money word + a settled or future ending, in any politeness level
+(?:보상|지급|환급|환불|입금)(?:이|가|은|는)? ?(?:돼요|됩니다|되어요|될 거|될 겁|될게|돼 드|된답니다|된대요)(?!\s?\?)
+(?:보상|지급|환급|환불|입금) ?받(?:으실 거|으실 겁|으세요|게 되실|게 될|을 거예요|을 겁니다)(?!\s?\?)
+\d[\d,.]*\s?(?:달러|원|만 원|불|엔)?[은는이가도]? ?(?:다 |모두 )?나(?:와요|올 거예요|옵니다|올 겁니다)
+(?<!whether )(?<!if )\bthe [\w' ]{1,25} (?:is|are|will be) (?:definitely |fully |all )?covered\b(?! (?:up to|under|if|when|only|for up to|subject))
+\b(?:the insurer|insurer|we) will (?:pay|reimburse|refund|cover)\b
+(?:you are|you're|you’re) (?:definitely |fully )?eligible for (?:compensation|reimbursement|a refund|payment)
+# round 12: spacing and other verbs; an amount promised; claims approved in advance
+\d[\d,.]*\s?(?:달러|원|만 원|불|엔)?[을를]? ?(?:다 |모두 |전부 )?받으실 (?:거|겁)
+(?:보험금|보상금|돈|\$[\d,.]+|\d[\d,.]*\s?(?:달러|원|만 원))[을를은는]? ?(?:바로 |곧 |다 |전부 )?(?:드릴게요|드려요|드립니다|보내 ?드릴게요|송금해 ?드릴게요|입금해 ?드릴게요)
+송금해 ?(?:드릴게요|드려요|드립니다)
+\b(?:your|the) claim (?:will|is going to) be (?:approved|paid|accepted)
+(?<!whether )(?<!if )\b(?:this|these|that|those) [\w' ]{0,30}(?:is|are) (?:definitely |fully |all )?covered\b(?! (?:up to|under|if|when|only|for up to|subject))
+\byou(?: | are |'re |’re )(?:qualify|entitled) (?:for|to) (?:compensation|reimbursement|a refund|payment|\$)
+# round 13: the polite future tense, "confirmed / possible / guaranteed", percentages, claims declared approved
+(?:지급|보상|입금|환급|환불|송금)(?:을|를)? ?해 ?드리겠(?:습니다|어요)
+(?:지급|보상|입금|환급) ?(?:이 )?확정(?:이에요|입니다|됐어요|되었습니다|돼요)
+\d+ ?%(?: 다)? ?(?:나와요|나옵니다|지급|보상|받으)
+(?:지급|보상|환급|입금) ?(?:이 )?가능(?:해요|합니다|하세요)
+보장(?:돼요|됩니다|해 ?드려요|해 ?드릴게요|해 ?드립니다)
+# round 14: "처리해 드리겠습니다", settled past forms, "eligible / approved" in the past and contracted forms
+(?:지급|보상|입금|환급|환불|송금)(?:을|를)? ?(?:처리(?:를)? ?)?(?:해 ?)?드(?:릴게요|려요|립니다|리겠)
+(?:지급|보상|입금|환급) ?(?:이 )?확정(?:됐습니다|되었어요|된 거예요|된 겁니다)
+(?:지급|보험금) ?대상(?:입니다|이에요|이세요)
+(?:지급|보상|청구|보험금)(?:이|가)? ?승인(?:이 )?(?:됐|되었|났)
+승인 ?(?:이 )?났(?:어요|습니다)
+보장된 (?:금액|보상|지급|보험금)
+걱정(?:하지| 하지)? ?마(?:세요|십시오)
+(?<!whether )(?<!if )\b(?:your|the) claim(?: is| has been| was|'s been|’s been|'s|’s) (?:already )?(?:approved|accepted)\b
+(?<!whether )(?<!if )\b(?:it's|it’s|it is|it has been|it's been|it’s been) (?:already )?approved\b
+# round 15: money "going out", certainty, approval/passing declared, receiving, giving back, and English approvals
+(?:보험금|보상금?|지급금?|돈|환급금?|환불금?)[이가은는도]? ?(?:곧 |바로 |다 |전부 )?(?:나갑니다|나가요|나갈 거|나올 거|나와요|나옵니다|송금됩니다|송금돼요|송금될 거|입금됩니다)
+(?:보상|지급|승인|환급)(?:은|는|이|가)? ?(?:확실|틀림없)
+승인 ?(?:완료|입니다|이에요|이세요)
+(?:지급|보상) ?결정 ?(?:났|됐|되었)
+심사 ?(?:통과|승인)(?:했|됐|되었|입니다|이에요)
+(?:보험금|보상금|지급금|환급금)? ?수령 ?(?:가능|하실 수 있|하시면 됩니다)
+(?:전액|전부|모두|다) ?돌려 ?드(?:릴게요|려요|립니다|리겠)
+\d[\d,.]*\s?(?:달러|원|만 원|불|엔)[을를]? ?(?:다 )?받으세요
+들어올 (?:테니|거니까|거라서|거예요|겁니다)
+\bwe(?:'ve|’ve| have) (?:already )?approved\b
+(?<!whether )(?<!if )\b(?:the |your )?payment (?:is|has been|was|'s been) (?:already )?approved\b
+\byour (?:payout|payment|reimbursement) (?:is|will be) (?:\$|USD|[\d,.]+\s?(?:dollars?|usd|달러))
+\b(?:the insurer|we|they) (?:has|have|'ve) agreed to (?:pay|reimburse|cover)\b
+# round 16: certainty stated outright, "the money is yours", a promise after "I can't confirm, but…"
+\b(?:the |your )?(?:payment|payout|reimbursement|compensation|refund)(?: is|'s|’s| will be) (?:certain|guaranteed|a done deal|locked in|a sure thing)\b
+\b(?:the )?money(?: is|'s|’s| will be) yours\b
+(?:드리지만|드릴 순 없지만|하지만|없지만|그래도)[^.?!]{0,20}(?:나올|들어올|받으실|보상될|지급될|입금될) ?(?:거|겁)
+\byou(?:'ll|’ll| will) (?:have|get|see) (?:the|your) money\b
+(?:바로|금방) ?받으세요
+(?:보상|지급|보험금|돈)[은는이가]? ?(?:따|떼어) ?놓은 당상

@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: tripclaim
+Version: 0.1.0
+Summary: Agentic travel-claim concierge on AWS Communication Developer Services
+License-Expression: MIT
+Requires-Python: >=3.12
+License-File: LICENSE
+Requires-Dist: boto3>=1.40
+Requires-Dist: strands-agents>=1.50
+Requires-Dist: bedrock-agentcore>=1.20
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Provides-Extra: infra
+Requires-Dist: aws-cdk-lib>=2.250; extra == "infra"
+Requires-Dist: constructs>=10; extra == "infra"
+Dynamic: license-file

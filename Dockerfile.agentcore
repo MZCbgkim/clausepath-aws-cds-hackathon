@@ -1,0 +1,8 @@
+# Agent container for Amazon Bedrock AgentCore Runtime (linux/arm64, port 8080).
+FROM --platform=linux/arm64 python:3.13-slim
+WORKDIR /app
+COPY pyproject.toml ./
+COPY src ./src
+RUN pip install --no-cache-dir .
+EXPOSE 8080
+CMD ["python", "-m", "tripclaim.handlers.agentcore_app"]

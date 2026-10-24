@@ -1,0 +1,1264 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>ClausePath</title>
+<style>
+  :root { --ink:#1b2230; --muted:#5b6474; --line:#e3e6ee; --blue:#1f4fd8; --bg:#f4f6fa; }
+  * { box-sizing:border-box }
+  html, body { height:100% }
+  body { margin:0; display:flex; flex-direction:column; font:16px/1.5 system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; color:var(--ink); background:var(--bg) }
+  header { padding:.8rem 1rem; background:#fff; border-bottom:1px solid var(--line) }
+  header b { color:var(--blue); font-size:16px } header .sub { display:block; color:var(--muted); font-size:13.5px; line-height:1.3 }
+  .hrow { display:flex; align-items:center; gap:.6rem } .who { display:flex; align-items:center; gap:.5rem; min-width:0; flex:1 }
+  .shield { width:32px; height:32px; border-radius:10px; display:grid; place-items:center; background:#e8eeff; color:var(--blue); flex-shrink:0 }
+  .shield svg.ln { width:18px; height:18px; vertical-align:0 }
+  .call { display:flex; align-items:center; gap:.35rem; height:36px; padding:0 .75rem; border-radius:18px; background:#eef2ff; color:var(--blue); font-size:14px; font-weight:600; text-decoration:none; white-space:nowrap }
+  html { -webkit-text-size-adjust:100%; text-size-adjust:100% }
+  .prog { display:flex; align-items:center; gap:.6rem; width:100%; margin-top:.45rem; padding:.3rem 0; background:none; text-align:left; color:var(--ink) }
+  .prog .pl { font-size:14px; font-weight:600; white-space:nowrap } .prog .pv { color:var(--muted); font-size:13px }
+  .progress { flex:1; height:6px; background:var(--line); border-radius:3px } .progress i { display:block; height:100%; background:var(--blue); border-radius:3px; width:0; transition:width .4s }
+  #offline { background:#fff4e5; color:#8a4b00; font-size:14.5px; padding:.5rem 1rem; border-bottom:1px solid #ffe0b2 }
+  #cl { position:fixed; inset:auto 0 0 0; max-height:80vh; overflow:auto; z-index:10; background:#fff; border-radius:14px 14px 0 0; box-shadow:0 -6px 24px rgba(20,30,60,.25); padding:.4rem 1rem 1.2rem }
+  #cl[hidden] { display:none } .clh { display:flex; align-items:center; justify-content:space-between; padding:.6rem 0; font-size:17px }
+  .clh button { width:40px; height:40px; border-radius:50%; background:#f1f4fb; font-size:16px }
+  .ci { display:flex; gap:.7rem; align-items:flex-start; padding:.7rem 0; border-top:1px solid var(--line); font-size:16px }
+  .est.deny { background:#fdf0ef; border-color:#f3c5c0 } .est.deny .ev { color:#b42318 }
+  .appeal { display:grid; gap:.4rem; margin-top:.5rem } .appeal textarea { width:100%; font:inherit; padding:.5rem; border-radius:10px; border:1px solid var(--line) }
+  .callbtn { display:flex; align-items:center; justify-content:center; gap:.4rem; min-height:44px; border-radius:12px; background:#fff; border:1px solid var(--line); color:var(--blue); font-weight:600; text-decoration:none }
+  .letter { display:flex; align-items:center; justify-content:center; gap:.35rem; margin-top:.6rem; min-height:44px; border:1.5px solid var(--blue); border-radius:12px; color:var(--blue); font-size:15px; font-weight:600; text-decoration:none; background:#fff }
+  .nw { white-space:nowrap }  /* an amount and its won value never split across lines (large text) */
+  .apnote { background:#ecfdf3; color:#0f6b4a; border-radius:8px; padding:.35rem .55rem; margin:0 0 .5rem; font-size:.9em; font-weight:600 }
+  .es.myap { background:#fff; border-radius:10px; padding:.45rem .6rem; color:var(--ink) }
+  .linkbtn { display:block; margin:.5rem auto 0; border:0; background:none; color:var(--muted); text-decoration:underline; font-size:14px; min-height:40px }
+  #ev .bar button span.bl, #ev .bar a span.bl { font-size:12.5px }
+  .es.split { background:#fff; border-radius:10px; padding:.45rem .6rem; color:var(--ink) }
+  .callreq { margin:.9rem 0 .2rem; text-align:center } .callreq button { width:100%; min-height:46px; border:1.5px solid var(--line); border-radius:12px; background:#fff; color:var(--ink); font-size:15px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; gap:.4rem }
+  .callreq button[disabled] { color:#0f6b4a; border-color:#a6dcc4; background:#f0fbf6 } .callreq small { display:block; margin-top:.3rem; color:var(--muted) }
+  .callreq .cbw:not([hidden]) { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem } .callreq .cbw small { width:100%; margin:0 } .callreq .cbw button { flex:1; width:auto; min-height:44px; font-size:14px }
+  .wbtn { width:100%; min-height:44px; margin-top:.5rem; border:1.5px solid var(--line); border-radius:12px; background:#fff; color:var(--ink); font-size:15px; font-weight:600 }
+  .callreq .cbwhen { display:block; margin-top:.4rem; color:var(--ink); font-weight:600 }
+  .callreq .cbx { width:100%; min-height:44px; margin-top:.5rem; border:1.5px solid var(--line); border-radius:12px; background:#fff; color:var(--ink); font-size:15px; font-weight:600 }
+  #apm { display:block; color:#b42318; font-size:15px; font-weight:600; margin:.3rem 0 }
+  .cltext { background:#fff; border-radius:10px; padding:.8rem .9rem; margin:0 0 .5rem; font-size:17px; line-height:1.6; white-space:pre-wrap; box-shadow:0 1px 4px rgba(0,0,0,.08) }
+  .letter.inl { display:inline-flex; padding:0 .9rem; margin:.2rem 0 }
+  .clref { display:inline; padding:0 .3rem; border:0; border-radius:6px; background:#ede9fe; color:var(--blue); font:inherit; font-weight:600; text-decoration:underline dotted; cursor:pointer }
+  .blk { display:inline-block; color:var(--blue); font-size:.92em } .es.appealed { color:#0f6b4a; font-weight:600 }
+  .er { margin:.35rem 0; font-size:14px } .er summary { cursor:pointer; color:#0f6b4a; font-weight:600 }
+  .er div { display:flex; justify-content:space-between; gap:.6rem; padding:.2rem 0; border-bottom:1px dashed #cfe8dc }
+  .er div span:first-child { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap } .er small { color:var(--muted) }
+  .langsw { margin:.6rem 0 0; font-size:14px; color:var(--muted) } .langsw button { background:none; border:0; padding:.3rem .2rem; color:var(--blue); font-size:14px; cursor:pointer }
+  .langsw button.on { color:var(--ink); font-weight:700; text-decoration:underline }
+  .sentph { white-space:normal; line-height:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(72px, 1fr)); gap:6px; max-width:260px }
+  .sp { position:relative; padding:0; border:0; border-radius:10px; overflow:hidden; aspect-ratio:1; background:#dfe5f5; cursor:zoom-in }
+  .sp img { width:100%; height:100%; object-fit:cover; display:block } .sp.retake, .sp.check { outline:3px solid #f59e0b; outline-offset:-3px }
+  .sp.reading span { background:rgba(31,79,216,.88) } .sp.reading img { opacity:.75 }
+  .sp span { position:absolute; left:0; right:0; bottom:0; padding:2px 4px; background:rgba(180,83,9,.92); color:#fff; font-size:11px; line-height:1.3 }
+  #lightbox { position:fixed; inset:0; z-index:30; background:rgba(10,14,25,.88); display:grid; place-items:center; padding:12px }
+  #lightbox img { max-width:100%; max-height:100%; border-radius:6px }
+  .ci .b { width:26px; height:26px; flex-shrink:0; border-radius:50%; display:grid; place-items:center; font-size:14px; background:#eef1f7; color:var(--muted) }
+  .ci.done .b { background:#e3f5ee; color:#0f8a5f } .ci small { display:block; color:var(--muted); font-size:14px; margin-top:.15rem } .ci small.w { color:#b45309 }
+  .ci a { display:inline-block; margin-top:.4rem; padding:.45rem .9rem; border-radius:10px; background:#eef2ff; color:var(--blue); text-decoration:none; font-size:15px }
+  .est { margin:.2rem 0 .6rem; padding:.8rem .9rem; border-radius:14px; background:linear-gradient(135deg,#eefaf4,#f6fdf9); border:1px solid #cdeedd }
+  .est .el { font-size:13.5px; color:#0b6b49; font-weight:600 } .est .ev { font-size:26px; font-weight:800; color:#0b6b49; line-height:1.2 }
+  .est .ev small { font-size:15px; font-weight:600; margin-left:.4rem; color:#2f7d5d } .est .es { font-size:13.5px; color:var(--muted); margin-top:.2rem }
+  .bigbtn { display:block; width:100%; margin-top:1rem; height:52px; border-radius:14px; background:var(--blue); color:#fff; font-size:17px; font-weight:600 }
+  .bigbtn:disabled { background:#c9d1e6 } .clnote { color:var(--muted); font-size:14.5px; margin-top:.6rem }
+  .ready { display:flex; align-items:center; gap:.6rem; margin:0 0 .5rem; padding:.55rem .7rem; border-radius:14px; background:#e3f5ee; color:#0b6b49; font-size:15px }
+  .ready button { white-space:nowrap; flex-shrink:0; margin-left:auto; height:38px; padding:0 1rem; border-radius:10px; background:#0f8a5f; color:#fff; font-weight:600; font-size:15px }
+  .intro { flex-shrink:0; align-self:stretch; padding:.85rem .95rem; border-radius:16px; background:linear-gradient(135deg,#eef3ff,#f7f9ff); border:1px solid #dbe4ff; font-size:15px; line-height:1.5 }
+  .intro b { color:var(--blue) } .intro .ev { font-size:16px; font-weight:700; margin-bottom:.35rem; display:flex; align-items:center; gap:.4rem }
+  .intro .plan { margin:.4rem 0; padding:.5rem .65rem; border-radius:12px; background:#fff; border:1px solid #e3e8f8 }
+  .intro .plan small { display:block; color:var(--muted); font-size:13.5px }
+  .intro ol { margin:.35rem 0 .2rem; padding-left:1.3rem } .intro .muted { color:var(--muted); font-size:13.5px }
+  .ready.sent { background:#eef2ff; color:#1f3fa8 } .ready.sent button { background:#fff; color:var(--blue); border:1px solid #c9d6ff }
+  .ready[hidden] { display:none } .sendfail { align-self:flex-end; color:#b42318; font-size:14.5px } .sendfail button { margin-left:.4rem; padding:.3rem .7rem; border-radius:8px; background:#fde8e7; color:#b42318 }
+  #log { flex:1; overflow:auto; padding:1rem; display:flex; flex-direction:column; gap:.6rem }
+  .livewrap { display:contents }  /* the live trail and its source card sit in the chat column like the rest */
+  .m { max-width:86%; padding:.6rem .8rem; border-radius:14px; white-space:pre-wrap; word-break:break-word }
+  .m.out { background:#fff; border:1px solid var(--line); align-self:flex-start; border-top-left-radius:4px }
+  .m.in { background:var(--blue); color:#fff; align-self:flex-end; border-top-right-radius:4px }
+  .m .via { display:block; font-size:13px; color:var(--muted); margin-bottom:.15rem }
+  .m.in .via { color:#dbe4ff }
+  .m a { color:inherit } .m a.btn { display:inline-block; margin:.3rem 0; padding:.35rem .8rem; border-radius:16px; background:var(--blue); color:#fff; text-decoration:none }
+  button { font:inherit; cursor:pointer; border:0 }
+  svg.ln.flip { transform:scaleX(-1) } [hidden] { display:none !important }  /* component styles must not resurrect hidden elements */
+  svg.ln { width:1.1em; height:1.1em; flex-shrink:0; vertical-align:-.18em }
+  .tile { width:26px; height:26px; border-radius:8px; display:grid; place-items:center; flex-shrink:0; background:var(--tb,#eef2ff); color:var(--tf,#1f4fd8) }
+  .tile svg.ln { width:15px; height:15px; vertical-align:0 }
+  .t-read,.t-doc { --tb:#fff4e0; --tf:#b45309 } .t-search,.t-found { --tb:#e8f0ff; --tf:#1f4fd8 } .t-check { --tb:#e6f6ef; --tf:#0f8a5f }
+  .t-verdict { --tb:#f1e9ff; --tf:#7c3aed } .t-cite { --tb:#fff7cc; --tf:#a16207 } .t-secure { --tb:#eef0f4; --tf:#374151 }
+  .t-bad { --tb:#fde8e7; --tf:#b42318 }
+  .spin { width:26px; height:26px; flex-shrink:0; display:grid; place-items:center } .spin::after { content:""; width:14px; height:14px; border-radius:50%;
+          border:2px solid #c7d4ff; border-top-color:var(--blue); animation:spin .8s linear infinite }
+  .ok { color:#0f8a5f } .warn { color:#b45309 }
+  /* live agent trail: what ClausePath is doing while the traveler waits */
+  .trail { align-self:flex-start; width:86%; max-width:520px; flex-shrink:0; padding:.65rem .8rem; border-radius:14px; border-top-left-radius:4px;
+           background:linear-gradient(135deg,#f5f8ff,#eef3ff); border:1px solid #dbe4ff; font-size:15px }
+  .trail .hdr { display:flex; align-items:center; gap:.45rem; font-weight:600; color:var(--blue); margin-bottom:.35rem }
+  .trail .orb { width:10px; height:10px; border-radius:50%; background:var(--blue); box-shadow:0 0 0 0 rgba(31,79,216,.5); animation:orb 1.4s infinite }
+  @keyframes orb { 70% { box-shadow:0 0 0 8px rgba(31,79,216,0) } 100% { box-shadow:0 0 0 0 rgba(31,79,216,0) } }
+  .trail ol { list-style:none; margin:0; padding:0 }
+  .trail li { display:flex; gap:.5rem; padding:.18rem 0; color:var(--ink); animation:rise .35s ease-out both }
+  .trail li { align-items:flex-start } .trail li .x { padding-top:2px } .trail li .x { min-width:0; overflow-wrap:anywhere }
+  .trail li .x small { color:var(--muted) } .trail li.now .x { color:var(--muted) } .trail li.now .el { font-variant-numeric:tabular-nums }
+
+  @keyframes rise { from { opacity:0; transform:translateY(4px) } to { opacity:1; transform:none } }
+  @keyframes spin { to { transform:rotate(360deg) } }
+  .trail.done { background:#fff; border-color:var(--line); padding:.4rem .75rem; font-size:14.5px; margin-top:-.3rem }
+  .trail.done .hdr { margin:0; font-weight:500; color:var(--muted); cursor:pointer } .trail.done .hdr .tog { transition:transform .15s }
+  .trail.done:not(.open) ol { display:none } .trail.done.open .hdr { margin-bottom:.3rem } .trail.done.open .hdr .tog { transform:rotate(90deg) }
+  .trail.done li { animation:none }
+  /* composer */
+  .dock { background:rgba(255,255,255,.92); backdrop-filter:saturate(1.4) blur(10px); border-top:1px solid var(--line); padding:.5rem .6rem; padding-bottom:max(.5rem, env(safe-area-inset-bottom)) }
+  .chips[hidden] { display:none } .chips { display:flex; gap:.4rem; overflow-x:auto; padding:0 .1rem .5rem; scrollbar-width:none } .chips::-webkit-scrollbar { display:none }
+  .chips button { flex-shrink:0; height:38px; padding:0 .8rem; border-radius:16px; background:#fff; border:1px solid #d6def5; color:var(--blue); font-size:14.5px; white-space:nowrap }
+  .chips button:active { background:#eef2ff }
+  .box { display:flex; flex-direction:column; border:1.5px solid var(--line); border-radius:24px; background:#fff; transition:border-color .15s, box-shadow .15s }
+  .box:focus-within { border-color:var(--blue); box-shadow:0 0 0 4px rgba(31,79,216,.10) }
+  .thumbs { display:flex; gap:.4rem; padding:.5rem .6rem 0; overflow-x:auto } .thumbs:empty { display:none }
+  .thumbs .th { position:relative; flex-shrink:0; width:56px; height:56px; border-radius:10px; background:#eef1f7 center/cover }
+  .thumbs .th button { position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:#1b2230; color:#fff; font-size:12px; line-height:20px; padding:0 }
+  .row { display:flex; align-items:flex-end; gap:.25rem; padding:.25rem }
+  .row textarea { flex:1; resize:none; border:0; outline:0; background:transparent; font:inherit; line-height:1.4; padding:.55rem .3rem; max-height:132px; min-height:40px; height:40px }
+  .row textarea::placeholder { color:#9aa3b2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .ic { width:40px; height:40px; border-radius:50%; display:grid; place-items:center; flex-shrink:0; background:transparent; color:var(--muted) }
+  .ic:hover { background:#f1f4fb } .ic svg { width:22px; height:22px }
+  #cam { display:flex; align-items:center; gap:.3rem; height:40px; padding:0 .7rem; border-radius:20px; background:#eef2ff; color:var(--blue); font-size:14.5px; font-weight:600; flex-shrink:0 }
+  #cam svg.ln { width:19px; height:19px; vertical-align:0 }
+  .big-text { zoom:1.3 } .big-text #readyt .sec, #readyt .bigonly { display:none } .big-text #readyt .bigonly { display:inline }  /* big text: the bar keeps amount and date (two lines); won and review are on the card above */  /* "가+" in the header: everything larger, for travelers who need it */
+  .who > div { min-width:0 } .big-text header .sub { white-space:nowrap; overflow:hidden; text-overflow:ellipsis }  /* one row: "공식 청구 도우미" stays, the call button keeps its word */
+  .tsize[aria-pressed="true"] { background:var(--blue); color:#fff }
+  .tsize { height:36px; min-width:36px; padding:0 .5rem; border-radius:18px; background:#f1f4fb; color:var(--ink); font-weight:700; font-size:14px }
+  #send { background:var(--blue); color:#fff; transition:transform .1s, opacity .15s } #send:disabled { opacity:.35; cursor:default } #send:not(:disabled):active { transform:scale(.92) }
+  #send svg { width:20px; height:20px }
+  .note { text-align:center; color:var(--muted); font-size:13px; padding:.4rem .5rem 0 }
+  /* source cards: the passage a reply rests on, cut from the original PDF page */
+  .card { flex-shrink:0; align-self:flex-start; width:86%; max-width:520px; margin-top:-.3rem; background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden }
+  .card .hd { display:flex; align-items:center; gap:.4rem; width:100%; min-height:44px; padding:.45rem .7rem; background:#f7f9fd; color:var(--ink); font-size:14.5px; text-align:left; cursor:pointer }
+  .card .hd .srcs { flex:1; min-width:0; padding:0 }
+  .card .hd .t { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap } .card .hd b { color:var(--blue) }
+  .card .hd .tog { color:var(--muted); transition:transform .15s } .card.fold .hd .tog { transform:rotate(-90deg) }
+  .card .srcs { display:flex; gap:.3rem; flex-wrap:wrap; padding:.45rem .6rem 0 }
+  .card .src { height:36px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 .7rem; border-radius:18px; border:1px solid var(--line); background:#fff; color:var(--ink); font-size:14px }
+  .card .src.on { background:var(--blue); border-color:var(--blue); color:#fff }
+  .ref { display:inline-block; min-width:1.35em; height:1.35em; padding:0 .25em; margin:0 .1em; border:0; border-radius:.4em; background:#e6ecff; color:var(--blue); font:600 .72em/1.35em system-ui,sans-serif; vertical-align:.35em; cursor:pointer }
+  .ref.on { background:var(--blue); color:#fff } .nw { white-space:nowrap }
+  .card .cap { padding:.45rem .75rem 0; font-size:15.5px } .card .cap { border-left:3px solid #f5c400; margin:.5rem .75rem 0; padding:.1rem .6rem }
+  .card .crop { margin:.4rem .5rem 0; max-height:60vh; overflow-y:auto; border-radius:6px; border:1px solid var(--line); background:#fff; cursor:zoom-in }
+  .card .seg { position:relative; overflow:hidden; height:0 } .card .seg + .seg { border-top:1px dashed var(--line) }
+  .card .seg .pg { position:absolute }
+  @media (max-width:700px) { .card { width:100% } }  /* phones: every pixel goes to the passage */
+  .card .acts { display:flex; gap:.15rem; flex-shrink:0; align-self:flex-start }
+  .card .acts button, .card .acts a { width:36px; height:36px; padding:0; border-radius:9px; border:0; background:none; color:var(--muted); display:inline-flex; align-items:center; justify-content:center }
+  .card .acts button:hover, .card .acts a:hover { background:#e9eef8; color:var(--blue) }
+  .card .hd .tog { align-self:flex-start; height:36px; display:inline-flex; align-items:center }
+  .card .crop { margin-bottom:.5rem }
+  /* folding slides: the body's one grid row goes from its height to 0 */
+  .card .body { display:grid; grid-template-rows:1fr; transition:grid-template-rows .3s cubic-bezier(.2,.8,.2,1), opacity .25s }
+  .card .body > .bi { min-height:0; overflow:hidden; animation:fade .22s ease-out }
+  .card.fold .body { grid-template-rows:0fr; opacity:0 } .card.still .body { transition:none }
+  .card.enter { animation:cardin .4s cubic-bezier(.2,.8,.2,1) both }
+  .livewrap > .trail:not(.old) { animation:cardin .35s cubic-bezier(.2,.8,.2,1) both }
+  .m.enter { animation:cardin .35s cubic-bezier(.2,.8,.2,1) both }
+  .trail li.old { animation:none } .trail li.done-now .tile { animation:pop .3s cubic-bezier(.3,1.6,.5,1) both }
+  .trail.done.open ol { animation:fade .25s ease-out }
+  @keyframes cardin { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:none } }
+  @keyframes fade { from { opacity:0 } to { opacity:1 } }
+  @keyframes pop { from { transform:scale(.4); opacity:0 } to { transform:none; opacity:1 } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important } }
+  .pg { position:relative } .pg img { display:block; width:100% }
+  .hl { position:absolute; background:rgba(255,210,0,.38); border-radius:3px; mix-blend-mode:multiply }
+  .card:not(.fold) .hl, #ev .hl { animation:pulse 1.2s ease-out 1 }
+  @keyframes pulse { 0% { background:rgba(255,170,0,.75) } 100% { background:rgba(255,210,0,.38) } }
+  /* full page viewer: opened from a card */
+  #ev { position:fixed; inset:auto 0 0 0; height:88vh; display:flex; flex-direction:column; background:#fff; border-radius:14px 14px 0 0; box-shadow:0 -6px 24px rgba(20,30,60,.25); z-index:10 }
+  #ev[hidden] { display:none }
+  @media (min-width:700px) { #ev { left:50%; right:auto; width:600px; transform:translateX(-50%) } }  /* desktop: a phone-width sheet, not a wall of page */
+  #ev .bar { display:flex; align-items:center; gap:.4rem; padding:.55rem .7rem; font-size:14px; border-bottom:1px solid var(--line) }
+  #evmode { font-weight:700; font-size:12.5px; letter-spacing:.03em }
+  #ev .bar .t { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap } #ev .bar .t b { color:var(--blue) }
+  #ev .bar button, #ev .bar a { height:32px; min-width:32px; padding:0 .6rem; border-radius:8px; border:1px solid var(--line); background:#fff; color:var(--ink); font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:.35rem }
+  #ev .view { position:relative; flex:1; overflow:auto; background:#e9ecf3; padding:.4rem; --zoom:100% } #ev.zoom .view { --zoom:210% }
+  #ev .view .pg { margin:0 0 .4rem; width:var(--zoom); box-shadow:0 1px 4px rgba(0,0,0,.15) }
+  /* clause graph: how the passage connects to the rest of the policy */
+  #ev.g .view { display:none } #ev:not(.g) .gwrap, #ev:not(.g) .gdet { display:none } #ev.g #evbig { display:none }
+  .gwrap { position:relative; flex:1; min-height:260px; overflow:hidden; color:#e6edff;
+           background:radial-gradient(circle at 50% 50%, #1b2a5c 0%, #0b1230 55%, #060a1c 100%) }
+  .gwrap::before { content:""; position:absolute; inset:0; opacity:.35;
+           background-image:radial-gradient(rgba(140,170,255,.5) 1px, transparent 1px); background-size:22px 22px;
+           mask-image:radial-gradient(circle at 50% 50%, #000 0%, transparent 75%) }
+  #gsvg { position:absolute; inset:0; width:100%; height:100% }
+  .gwrap .edge { fill:none; stroke-width:1.6; stroke-dasharray:5 7; animation:flow 1.6s linear infinite; opacity:.9 }
+  .gwrap .edge.in { animation-direction:reverse }
+  .gwrap .glow { fill:none; stroke-width:7; opacity:.13 }
+  @keyframes flow { to { stroke-dashoffset:-24 } }
+  .gwrap .ring { position:absolute; left:50%; top:50%; width:96px; height:96px; margin:-48px 0 0 -48px; border-radius:50%;
+           border:1px solid rgba(120,160,255,.45); animation:ring 2.4s ease-out infinite }
+  .gwrap .ring.b { animation-delay:1.2s }
+  @keyframes ring { from { transform:scale(.7); opacity:.9 } to { transform:scale(2.6); opacity:0 } }
+  .gn { position:absolute; left:0; top:0; transform:translate(var(--x), var(--y)); transition:transform .6s cubic-bezier(.2,.8,.2,1), opacity .4s;
+        display:flex; flex-direction:column; align-items:center; gap:3px; width:var(--lw, 96px); margin-left:calc(var(--lw, 96px) / -2); margin-top:-19px; cursor:pointer; text-align:center }
+  .gn .dot { width:38px; height:38px; border-radius:50%; display:grid; place-items:center; font:700 9.5px/1 system-ui,sans-serif; letter-spacing:-.02em; white-space:nowrap; color:#fff;
+             background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.35), rgba(255,255,255,0) 60%), var(--c);
+             box-shadow:0 0 0 2px rgba(255,255,255,.12), 0 0 18px var(--c) }
+  .gn .lb { font-size:11px; line-height:1.25; color:#c9d6ff; max-width:var(--lw, 96px); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical }
+  .gn .rt { font-size:10px; font-weight:700; line-height:1; padding:2px 6px; border-radius:8px; color:var(--c); background:rgba(6,10,28,.75); border:1px solid var(--c); white-space:nowrap }
+  .gpage { position:absolute; right:10px; top:10px; z-index:3; display:flex; align-items:center; gap:.2rem; height:30px; padding:0 .45rem 0 .7rem; border-radius:15px; white-space:nowrap;
+           background:rgba(255,255,255,.12); border:1px solid rgba(160,185,255,.4); color:#dbe5ff; font-size:12.5px; font-weight:600 }
+  .gn.g3 { transition:opacity .3s; transform-origin:50% 19px; will-change:transform }
+  .gn.g3.c { transform-origin:50% 29px } .gn.far .rt, .gn.far .lb { display:none }
+  .gwrap .edge.cold { animation:none; stroke-dasharray:none; opacity:.45 }
+  .gwrap.m3 { touch-action:none; cursor:grab } .gwrap.m3:active { cursor:grabbing }
+  .gmode { position:absolute; right:10px; top:10px; z-index:3001; height:30px; padding:0 .7rem; border-radius:15px; background:rgba(255,255,255,.12);
+           border:1px solid rgba(160,185,255,.4); color:#dbe5ff; font:700 12px/1 system-ui,sans-serif; letter-spacing:.04em }
+  .gn.trail .dot { box-shadow:0 0 0 3px rgba(255,255,255,.55), 0 0 18px var(--c) }
+  .gpath { position:absolute; left:8px; right:8px; bottom:8px; z-index:3000; display:flex; align-items:center; gap:2px; overflow-x:auto; scrollbar-width:none; color:#7f93c9 }
+  .gpath::-webkit-scrollbar { display:none }
+  .gpath button { flex-shrink:0; height:26px; padding:0 .55rem; border-radius:13px; background:rgba(255,255,255,.08); border:1px solid rgba(160,185,255,.3); color:#c9d6ff; font:600 11.5px/1 system-ui,sans-serif }
+  .gpath button.on { background:#3b6cff; border-color:#3b6cff; color:#fff }
+  .gwrap.mt .ring, .gwrap.mt .gpath { display:none }
+  .gcols { position:absolute; inset:0; overflow:auto; display:flex; align-items:flex-start; gap:34px; padding:14px 14px 14px; scroll-behavior:auto; scrollbar-width:thin }
+  .gcols .col { position:relative; z-index:1; flex:0 0 var(--cw, 158px); display:flex; flex-direction:column; gap:.55rem }
+  @media (min-width:700px) { .gcols .col { --cw:190px } }
+  .gcols .col.new { animation:slidein .45s cubic-bezier(.2,.8,.2,1) both } @keyframes slidein { from { opacity:0; transform:translateX(-24px) } to { opacity:1; transform:none } }
+  .gcols .col.new .tc { animation:rise .4s ease-out both }
+  .gcols .tf { flex-direction:column; align-items:flex-start; gap:.45rem; padding:.2rem 0 } .gcols .tf b { font-size:15px }
+  .cg { display:flex; flex-direction:column; gap:.35rem }
+  .ch { color:var(--c); font-size:12px; font-weight:700; letter-spacing:.01em; padding-left:2px }
+  .gcols .tc { width:100%; align-items:flex-start; padding:.45rem .55rem; border-radius:11px; font-size:13px; background:rgba(14,22,52,.92) }
+  .gcols .tc .tt { white-space:normal; overflow:visible; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical }
+  .gcols .tc .td { min-width:30px; height:20px; font-size:9.5px; margin-top:1px }
+  .gcols .tc.on { background:color-mix(in srgb, var(--c, #3b6cff) 30%, #0e1634); border-color:var(--c); box-shadow:0 0 0 1px var(--c), 0 0 18px color-mix(in srgb, var(--c) 45%, transparent) }
+  .cempty { color:#9fb0e6; font-size:13px; padding-top:.4rem }
+  .clinks { position:absolute; left:0; top:0; z-index:0; pointer-events:none; overflow:visible }
+  .gtree { position:absolute; inset:0 0 40px 0; overflow-y:auto; padding:14px 14px 8px; scrollbar-width:thin }
+  .tf { display:flex; align-items:center; gap:.7rem; padding:.2rem .1rem .9rem }
+  .tf b { display:block; font-size:16px; color:#fff; line-height:1.3 } .tf small { color:#9fb0e6; font-size:12.5px }
+  .td { display:inline-grid; place-items:center; flex-shrink:0; min-width:34px; height:24px; padding:0 6px; border-radius:12px; font:700 10.5px/1 system-ui,sans-serif;
+        color:#fff; background:var(--c, #3b6cff); box-shadow:0 0 12px color-mix(in srgb, var(--c, #3b6cff) 60%, transparent) }
+  .td.big { min-width:54px; height:54px; border-radius:50%; font-size:13px; --c:#3b6cff; box-shadow:0 0 0 3px rgba(255,255,255,.18), 0 0 28px #3b6cff }
+  .tg { position:relative; margin-left:26px; padding:0 0 .8rem 18px }
+  .tg::before { content:""; position:absolute; left:0; top:-12px; bottom:0; width:2px;  /* trunk from the clause in view */
+                background:repeating-linear-gradient(180deg, var(--c) 0 6px, transparent 6px 11px); background-size:2px 22px; animation:trunk 1.2s linear infinite; opacity:.85 }
+  .tg:last-child::before { bottom:auto; height:24px }
+  .tg::after { content:""; position:absolute; left:0; top:11px; width:12px; height:2px; background:var(--c) }
+  @keyframes trunk { to { background-position:0 22px } }
+  .th { display:flex; align-items:center; gap:.45rem; color:#e6edff; font-size:13.5px; font-weight:600; margin-bottom:.4rem; min-height:24px }
+  .th span { font-size:11px; font-weight:700; padding:2px 7px; border-radius:9px; color:var(--c); border:1px solid var(--c); background:rgba(6,10,28,.6) }
+  .ti { display:flex; flex-wrap:wrap; gap:.4rem }
+  .tc { display:flex; align-items:center; gap:.45rem; max-width:100%; padding:.4rem .7rem .4rem .45rem; border-radius:12px; text-align:left;
+        background:rgba(255,255,255,.07); border:1px solid color-mix(in srgb, var(--c) 45%, transparent); color:#eef2ff; font-size:13.5px; line-height:1.25 }
+  .tc:hover, .tc:active { background:rgba(255,255,255,.14) } .tc .tt { min-width:0; overflow:hidden; text-overflow:ellipsis }
+  .gtree.enter .tf { animation:rise .35s ease-out both } .gtree.enter .tg { animation:rise .4s ease-out both } .gtree.enter .tc { animation:rise .4s ease-out both }
+  .gempty { position:absolute; left:0; right:0; bottom:44px; text-align:center; color:#9fb0e6; font-size:12.5px }
+  .gn.c { z-index:2; --lw:140px; margin-top:-29px } .gn.c .dot { width:58px; height:58px; font-size:13px; --c:#3b6cff; box-shadow:0 0 0 3px rgba(255,255,255,.2), 0 0 34px #3b6cff }
+  .gn.c .lb { font-size:12.5px; color:#fff; font-weight:600; max-width:140px }
+  .gn.faq .dot { width:26px; height:26px; font-size:9px } .gn.gone { opacity:0; pointer-events:none }
+  .gl { position:absolute; left:0; top:0; transform:translate(-50%,-50%); padding:1px 7px; border-radius:9px; font-size:10.5px; font-weight:600;
+        background:rgba(6,10,28,.85); border:1px solid currentColor; white-space:nowrap; pointer-events:none; animation:rise .5s ease-out both }
+  .gdet { flex:none; max-height:46vh; overflow:auto; padding:.7rem .8rem 1rem; background:#fff }
+  .gdet h4 { margin:0 0 .25rem; font-size:15px } .gdet h4 b { color:var(--blue) }
+  .gdet .rel { display:flex; flex-wrap:wrap; gap:.3rem; margin:.3rem 0 .5rem } .gdet .rel span { font-size:12px; padding:2px 8px; border-radius:10px; color:#fff }
+  .gdet .crop { margin:0 auto .5rem; border:1px solid var(--line); border-radius:6px }
+  .gdet .seg { position:relative; overflow:hidden; height:0 } .gdet .seg + .seg { border-top:1px dashed var(--line) } .gdet .seg .pg { position:absolute }
+  .gdet .ft { display:flex; gap:.4rem } .gdet .ft button, .gdet .ft a { height:32px; padding:0 .75rem; border-radius:8px; border:1px solid var(--line); background:#fff; color:var(--ink); font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:.35rem }
+  .gdet .hint { color:var(--muted); font-size:12.5px; margin:.2rem 0 .5rem }
+  #shade { position:fixed; inset:0; background:rgba(10,15,30,.35); z-index:9 } #shade[hidden] { display:none }
+  #askd { border:0; border-radius:20px 20px 0 0; margin:auto auto 0; width:100%; max-width:560px; padding:1.1rem 1.1rem 1.3rem;
+          animation:sheet .28s cubic-bezier(.2,.8,.2,1) } #askd::backdrop { background:rgba(15,20,35,.45) }
+  #askd p { margin:.1rem 0 1rem; font-size:16.5px; line-height:1.5 } .askb { display:flex; gap:.5rem }
+  .askb button { flex:1; height:48px; border-radius:12px; font-size:16px; font-weight:600; border:1px solid var(--line); background:#fff; color:var(--ink) }
+  .askb #asky { background:var(--blue); border-color:var(--blue); color:#fff }
+  @keyframes sheet { from { transform:translateY(100%) } to { transform:none } }
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow"><div class="who"><span class="shield" data-ic="shield"></span><div><b id="ins">ClausePath</b><span class="sub" id="sub"></span></div></div>
+    <button type="button" class="tsize" id="tsize"></button><a class="call" id="call" hidden></a></div>
+  <button type="button" class="prog" id="prog"><span class="pl" id="pl"></span><span class="progress"><i id="bar"></i></span><span class="pv" data-ic="down"></span></button>
+</header>
+<div id="offline" hidden></div>
+<section id="cl" hidden><div class="clh"><b id="clt"></b><button type="button" id="clx" aria-label="close" data-ic="x"></button></div><div id="clb"></div></section>
+<div id="log"><div class="intro" id="intro" hidden></div></div>
+<div id="shade" hidden></div>
+<section id="ev" hidden>
+  <div class="bar"><button type="button" id="evback" hidden></button><span class="t" id="evt"></span>
+    <button type="button" id="evmode" hidden></button><button type="button" id="evbig" title="zoom" data-ic="expand"></button><a id="evpdf" target="_blank" rel="noreferrer" title="PDF" data-ic="pdf"></a>
+    <button type="button" id="evclose" aria-label="close" data-ic="x"></button></div>
+  <div class="view" id="evview"></div>
+  <div class="gwrap" id="gwrap"><div class="ring"></div><div class="ring b"></div><svg id="gsvg"></svg></div>
+  <div class="gdet" id="gdet"></div>
+</section>
+<form id="f" class="dock">
+  <div class="ready" id="ready" hidden><span id="readyt"></span><button type="button" id="readyb"></button></div>
+  <div class="chips" id="chips"></div>
+  <div class="box">
+    <div class="thumbs" id="thumbs"></div>
+    <div class="row">
+      <input type="file" id="file" accept="image/*" multiple hidden>  <!-- no capture attr: phones offer camera, photo library and files -->
+      <button type="button" id="cam"><span data-ic="camera"></span><span id="camt"></span></button>
+      <textarea id="t" rows="1"></textarea>
+      <button class="ic" id="send" disabled aria-label="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+    </div>
+  </div>
+  <div class="note" id="note"></div>
+</form>
+<dialog id="askd"><p id="askt"></p><div class="askb"><button type="button" id="askn"></button><button type="button" id="asky"></button></div></dialog>
+<script>
+const CFG = /*CONFIG*/{};
+// Line icons (Lucide shapes, ISC licence): one stroke width everywhere, colour from the text.
+const SVG = {
+  globe:'<circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5a14.5 14.5 0 0 1 0 19M12 2.5a14.5 14.5 0 0 0 0 19"/>',
+  clock:'<circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3 2"/>',
+  image:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+  receipt:'<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 17.5v-11"/>',
+  file:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8M10 9H8"/>',
+  search:'<circle cx="11" cy="11" r="7.5"/><path d="m20.5 20.5-4.3-4.3"/>',
+  book:'<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2zM22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>',
+  shield:'<path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  scale:'<path d="m16 16 3-8 3 8c-.9.6-1.9 1-3 1s-2.1-.4-3-1ZM2 16l3-8 3 8c-.9.6-1.9 1-3 1s-2.1-.4-3-1Z"/><path d="M7 21h10M12 3v18M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+  marker:'<path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/>',
+  lock:'<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  pen:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  steps:'<path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/>',
+  expand:'<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>',
+  graph:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>',
+  pdf:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M12 18v-6M9 15l3 3 3-3"/>',
+  alert:'<path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4M12 17h.01"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  done:'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  wifioff:'<path d="M12 20h.01M8.5 16.4a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 4.2-2.6M10.7 5c4-.4 8.1.9 11.3 3.8M16.9 11.3a10 10 0 0 1 2.2 1.6M5 13a10 10 0 0 1 5.2-2.8M2 2l20 20"/>',
+  retry:'<path d="M3 12a9 9 0 0 1 9-9 9.8 9.8 0 0 1 6.7 2.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.8 9.8 0 0 1-6.7-2.7L3 16M8 16H3v5"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  down:'<path d="m6 9 6 6 6-6"/>',
+  right:'<path d="m9 18 6-6-6-6"/>',
+  send:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+  camera:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/>',
+  phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+};
+const ic = (name, cls = "") => `<svg class="ln ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SVG[name]}</svg>`;
+document.querySelectorAll("[data-ic]").forEach(e => e.innerHTML = ic(e.dataset.ic));
+
+const md = iso => { const m = /^\d{4}-(\d\d)-(\d\d)/.exec(iso || ""); return m ? `${+m[1]}/${+m[2]}` : (iso || ""); };  // 2026-09-17 -> 9/17
+const names = xs => esc((xs || []).map(x => typeof x === "string" ? x : x.name).join(" · "));  // clause names, not codes
+const dueDate = iso => { const d = new Date(iso + "T00:00:00");  // "10/14(화)" / "Tue 14 Oct"
+  return CFG.locale === "ko" ? `${d.getMonth() + 1}/${d.getDate()}(${"일월화수목금토"[d.getDay()]})`
+    : d.toLocaleDateString("en-US", {weekday: "short", month: "short", day: "numeric"}); };  // "Wed, Oct 14"
+const period = p => (p || "").split(" ~ ").map(md).join("–");
+const T = {
+  en: {page:"p.", open:"View in document", helper:"Official claims assistant", helperShort:"Official claims", callShort:"Call",
+       verify:p => `Not sure this is us? Call ${p} to check.`, policy:"Policy", docsN:(d, n) => `Documents ${d}/${n}`, clTitle:"What your claim needs", clTitleDecided:"Result and payment", estTitle:"Estimated claim so far",
+       estKrw:() => "",  // travelers abroad think in USD; won only for Korean travelers
+       estDetail:e => `Receipts $${(+e.receipts_usd).toFixed(2)} · limit $${e.daily}/day, $${e.trip}/trip · $${(+e.remaining_usd).toFixed(2)} of the trip limit left`,
+       estNote:"Estimate at a demo exchange rate. The insurer decides the final amount.",
+       estBreak:n => `By receipt (${n})`, decTitle:"The insurer's decision", appealBtn:"Object to this decision", appealShort:"Please write one more sentence about what you disagree with.", sending:"Sending…",
+       appealFailed:"Not sent. Your text is kept — tap again, or call us.", appealDone:"Your objection was answered (see the message).",
+       fss:"If you still disagree after the review: Korea's Financial Supervisory Service, 1332 (in Korea) or www.fcsc.kr.", letter:"Decision letter (print or save as PDF)", letterShort:"Open the decision letter", appealSend:"Send objection", appealPh:"What do you disagree with? e.g. the minibar line was a meal",
+       appealed:d => `Objection received. A reviewer who did not make the first decision looks again.`, appealBy:d => `Disagree? Object or call by ${d}. After that: Korea's Financial Supervisory Service, online at www.fcsc.kr from abroad (1332 in Korea).`, adj:{excluded_item:"item not covered", airline_paid:"paid by the airline", other_insurance:"paid by another insurance", over_reasonable:"above a reasonable cost", other:"see the message"}, decDeny:"Not payable",
+       decLess:e => `Less than the estimated claim ($${(+e.estimate_usd).toFixed(2)}).`, decWhy:"The reason and how to object are in the message.", estOut:"not counted", estRate:(r, c) => `Rate: 1 USD = ${r} ${c} (demo fixed rate; the insurer uses the rate on each expense date)`,
+       retakeN:n => `${n} photo${n > 1 ? "s" : ""} to retake`, securePage:"Open the secure page", secureHint:"Signed form and ID go only through the secure page",
+       sendHint:"Send a photo in this chat", submit:"Submit to the insurer", submitAsk:"Send your claim to the insurer now?", askYes:"Submit", askNo:"Not now", details:"Details", payto:"Paid to",
+       sentLine:d => `Submitted${d.estimate && d.estimate.estimate_usd ? ` · estimate $${(+d.estimate.estimate_usd).toFixed(2)}` : ""}${d.due ? (d.due.kind === "pay" ? ` · expected ${dueDate(d.due.date)}` : ` · update by ${dueDate(d.due.date)}`) : ""}`,
+       decided:d => d.decision.type === "deny" ? "Decision: not payable · see the message for why and how to object" : `${d.decision.type === "partial" ? "Paid in part" : "Paid in full"} $${(+d.decision.amount_usd).toFixed(2)}${d.due ? ` · expected ${dueDate(d.due.date)}` : ""}${T.inReview(d)}`,
+       inReview:d => { const a = d.decision.appeal; return a && !a.resolved ? `<span class="sec"> · $${Math.max(0, d.decision.estimate_usd - d.decision.amount_usd).toFixed(2)} under review</span><span class="bigonly"> · <span class="nw">objection in review</span></span>` : ""; },
+       splitLine:(d, rest) => `Decided $${(+d.decision.amount_usd).toFixed(2)}: ${d.due ? `expected ${dueDate(d.due.date)}, ` : ""}not held back by the objection. Disputed $${rest}: reviewed again by ${dueDate(d.decision.appeal.reply_by)}.`,
+       where:w => `Your photos and this chat are ${w} (AWS). Details: privacy notice, transfers abroad.`, callReq:"Ask us to call you", myAppeal:"Your objection", evN:n => `${n} photo${n === 1 ? "" : "s"} sent as evidence`, withdraw:"Withdraw my objection", withdrawSure:"Tap again to withdraw (the decision stays as it is)",
+       apNote:d => `✓ You objected — a different reviewer replies by ${d}.`, zoomBtn:"Zoom", saveBtn:"Save", closeBtn:"Close", apEv:"Send photos for my objection", apEvText:"Photos for my objection.", callReqDone:"Call requested — we will call you back", callReqHint:"No need to call Korea from abroad.", callWhen:tz => `When suits you? (your local time, ${tz})`, callCancel:"Cancel the call request", callFrom:p => `The call comes from ${p}.`, callChange:"This time doesn't work for me", callChangeSent:"Change requested — we'll set a new time and tell you here.", callAt:t => `We'll call around ${t.toLocaleString("en-US", {weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit"})} (your phone's time).`, callCancelled:"Call request cancelled", callAny:"Any time", callAm:"Morning 9–12", callPm:"Afternoon 1–6",
+       submitAskRetake:n => `${n} photo${n > 1 ? "s are" : " is"} still waiting for a retake. If you submit now, ${n > 1 ? "they are" : "it is"} left out and the insurer may ask for ${n > 1 ? "them" : "it"} later. Submit anyway?`,
+       checkN:"Needs a check: this document can't be used for this claim as it is. Please send one in your own name for this flight.",
+       why:{name_mismatch:"The name on it is not yours.", flight_mismatch:"The flight or date on it is not this trip's.", not_own:"It can't be used for this claim.",
+            fix:"Please send one with your name and this flight.", fixReceipt:"Please send receipts for what you paid yourself."},
+       dueLine:u => u.kind === "pay" ? `Expected payment: ${dueDate(u.date)}, if nothing needs checking. The insurer confirms the date.` : `Update from the insurer: by ${dueDate(u.date)}`, ready:"All documents are in.", submitted:"Submitted. The insurer checks your documents and confirms whether and when it pays.",
+       notYet:"Send the remaining documents to submit.", offline:"You're offline. When you're back online, tap Try again.", failed:"Not sent.", retry:"Try again",
+       photos:n => `Sent ${n} photo${n > 1 ? "s" : ""}`,
+       intro:{ev:(i) => `${i.flight} on ${md(i.date)}: ${i.event === "delayed" ? "delayed" : "cancelled"}${i.reason ? ` (${i.reason})` : ""}`,
+              hi:n => `Hi ${n}, we're sorry about your flight. ClausePath helps you claim from your travel insurance.`,
+              plan:(p, l) => l ? `Your plan: <b>${p}</b> — delay cover up to <b>USD ${l[0]} a day, ${l[1]} a trip</b>` : `Your plan: <b>${p}</b> — this plan has no travel delay cover. Ask us what else may help.`,
+              period:p => `Cover period ${period(p.join(" ~ "))}`, todo:"For tonight", t1:"Ask the airline counter for a written cancellation letter", t2:"Keep receipts for the hotel, meals and transport", t3:"No rush: this link works for 30 days, so you can finish later.",
+              foot:"Ask anything below, or send photos of your documents. The insurer makes the final decision."}, words:{cancelled:"cancelled", delayed:"delayed", unreadable:"can't read it"}, graph:"Linked clauses", map:"Clause map", tapNode:"Tap a clause to follow the link.", noLinks:"No other clause refers to this one.", treeView:"2D", linksN:n => `${n} link${n === 1 ? "" : "s"}`,
+       rel:{requires:{out:"What it needs", in:"Clauses that need this"}, limit:{out:"Limits that apply", in:"Clauses using this limit"},
+            defines:{out:"Terms it uses", in:"Clauses using this term"}, cause:{out:"Covered causes", in:"Where this cause counts"},
+            lists:{out:"Expense list", in:"Where this list is used"}, applies:{out:"Applies to", in:"What applies here"},
+            excludes:{out:"What it excludes", in:"Exceptions to this clause"}, extends:{out:"What it extends", in:"What extends this clause"},
+            contrast:{out:"Compare with", in:"Compare with"}, claims:{out:"Claim step for", in:"How to claim"},
+            decides:{out:"Decides on", in:"Who decides"}, explains:{out:"Explains", in:"Plain-language answers (FAQ)"},
+            cites:{out:"Mentions", in:"Mentioned by"}}, back:"Back to map", evidence:"Source", send:"Send", ph:"Ask, or send receipt photos", phShort:"Ask or send a photo", camBtn:"Photo", close:"Close", remove:"Remove photo", bigger:"Larger text", smaller:"Normal text", sizeOff:"A+", sizeOn:"A−",
+       chips:["Is my hotel tonight covered?", "What documents do I need?", "Do I need to extend my insurance?", "When will I get paid?"],
+       working:"ClausePath is working", checked:n => `Checked ${n} steps`, writing:"Writing the reply",
+       secs:n => `${n}s`,
+       steps:{read:(d, now) => `${now ? "Reading" : "Read"} ${d.n} photo${d.n > 1 ? "s" : ""}`, search:(d, now) => `${now ? "Searching" : "Searched"} the policy and FAQ <small>“${esc(d.query)}”</small>`,
+              found:d => `Relevant clauses <small>${names(d.items)}${d.faq ? ` · FAQ ×${d.faq}` : ""}</small>`, check:(d, now) => `${now ? "Checking your cover against the policy" : "Checked your cover"} <small>${esc([d.plan, d.bought && "bought " + md(d.bought), period(d.period)].filter(Boolean).join(" · "))}</small>`,
+              verdict:d => `Policy check: ${({likely_covered:"within the cover", likely_not_covered:"outside the cover", needs_info:"need more information", review:"needs a person"})[d.status] || esc(d.status)} <small>${names(d.clauses)}</small>`,
+              cite:d => `Source [${d.n}] highlighted <small>${esc(d.name || d.clause)}</small>`, secure:() => "Made a secure link", doc:d => docStep(d)},
+       docs_:{receipt:"Receipt", airline_letter:"Airline letter", eticket:"E-ticket", boarding_pass:"Boarding pass"}, retake:"needs a retake", needsCheck:"needs a check", reading:"Reading…", typing:"ClausePath is checking…", docs:"documents",
+       note:"Guidance only — the insurer decides your claim. Never send bank or ID details here.", via:{sms:"Text message", email:"Email", web:"", whatsapp:"WhatsApp", rcs:"RCS"},
+       you:"You", sent:"Photo sent", fail:"Could not send. Please try again.", secure:"Open the secure page"},
+  ko: {page:"쪽", open:"원문에서 보기", helper:"여행자보험 공식 청구 도우미", helperShort:"공식 청구 도우미", callShort:"전화",
+       verify:p => `이 안내가 맞는지 궁금하면 ${p}로 전화해 확인할 수 있어요.`, policy:"약관", docsN:(d, n) => `서류 ${d}/${n}`, clTitle:"청구에 필요한 서류", clTitleDecided:"심사 결과와 지급 안내", estTitle:"지금까지 예상 청구액",
+       estKrw:k => `약 ${Math.round(k / 10000).toLocaleString()}만 원`, estDetail:e => `영수증 합계 $${(+e.receipts_usd).toFixed(2)} · 한도 하루 $${e.daily}, 여행당 $${e.trip} · 여행 한도 $${(+e.remaining_usd).toFixed(2)} 남음`,
+       estNote:"데모 환율로 계산한 예상 청구액이에요. 최종 금액은 보험사가 정해요.",
+       estBreak:n => `영수증별 금액 (${n}장)`, decTitle:"보험사 결정", appealBtn:"이의 신청하기", appealShort:"동의하지 않는 이유를 한 문장만 더 적어 주세요.", sending:"보내는 중…",
+       appealFailed:"보내지 못했어요. 적은 내용은 남아 있으니 다시 누르거나 전화해 주세요.", appealDone:"이의 신청에 대한 답변을 보냈어요(메시지 참고).",
+       fss:"재검토 뒤에도 동의하기 어려우면 금융감독원 분쟁조정: 국번 없이 1332, www.fcsc.kr", letter:"결정 통지서 보기 (인쇄하거나 파일로 저장)", letterShort:"결정 통지서 열기", appealSend:"이의 신청 보내기", appealPh:"어떤 부분에 동의하지 않으세요? 예: 미니바로 빠진 금액은 식사비였어요",
+       appealed:d => `이의 신청을 받았어요. 처음 결정한 사람이 아닌 다른 심사자가 다시 검토해요.`, appealBy:d => `동의하지 않으면 ${d}까지 이의 신청하거나 전화하세요. 그래도 어려우면 금융감독원 분쟁조정(국번 없이 1332, www.fcsc.kr).`, adj:{excluded_item:"보상하지 않는 항목", airline_paid:"항공사 부담분", other_insurance:"다른 보험 지급분", over_reasonable:"합리적 비용 초과", other:"메시지 참고"}, decDeny:"지급 불가",
+       decLess:e => `예상 청구액($${(+e.estimate_usd).toFixed(2)})보다 적어요.`, decWhy:"이유와 이의 신청 방법은 메시지에 있어요.", estOut:"제외", estRate:(r, c) => `환율: 1달러 = ${r} ${c === "JPY" ? "엔" : c} (데모 고정 환율, 실제로는 지출일 환율 적용)`,
+       retakeN:n => `다시 찍을 사진 ${n}장`, securePage:"보안 페이지 열기", secureHint:"서명과 신분증은 보안 페이지에서만 받아요",
+       sendHint:"이 대화창에 사진으로 보내 주세요", submit:"보험사에 제출하기", submitAsk:"지금 보험사에 청구를 제출할까요?", askYes:"제출하기", askNo:"나중에", details:"자세히", payto:"입금 계좌",
+       sentLine:d => `제출 완료${d.estimate && d.estimate.estimate_usd ? ` · 예상 $${(+d.estimate.estimate_usd).toFixed(2)}(${T.estKrw(d.estimate.estimate_krw)})` : ""}${d.due ? (d.due.kind === "pay" ? ` · ${dueDate(d.due.date)} 지급 예정` : ` · ${dueDate(d.due.date)}까지 확인 결과 안내`) : ""}`,
+       decided:d => d.decision.type === "deny" ? "심사 결과: 지급 불가 · 사유와 이의 신청 방법은 메시지를 확인해 주세요" : `${d.decision.type === "partial" ? "일부 지급" : "전액 지급"} <span class="nw">$${(+d.decision.amount_usd).toFixed(2)}<span class="sec">(${T.estKrw(Math.round(d.decision.amount_usd * (d.estimate.krw_per_usd || 1380)))})</span></span>${d.due ? ` · <span class="nw">${dueDate(d.due.date)} 지급 예정</span>` : ""}${T.inReview(d)}`,
+       inReview:d => { const a = d.decision.appeal; return a && !a.resolved ? `<span class="sec"> · <span class="nw">$${Math.max(0, d.decision.estimate_usd - d.decision.amount_usd).toFixed(2)} 이의 검토 중</span></span><span class="bigonly"> · <span class="nw">이의 검토 중</span></span>` : ""; },
+       splitLine:(d, rest) => `결정된 $${(+d.decision.amount_usd).toFixed(2)}: ${d.due ? `${dueDate(d.due.date)} 지급 예정이며 ` : ""}이의 신청 때문에 늦춰지지 않아요. 이의 대상 $${rest}: ${dueDate(d.decision.appeal.reply_by)}까지 다시 검토해요.`,
+       where:w => `보내 주신 사진과 대화는 ${w}. 자세한 내용은 개인정보 처리방침의 '국외 이전'에 있어요.`, callReq:"전화 요청하기 (저희가 걸어 드려요)", myAppeal:"내 이의 신청", evN:n => `증빙 사진 ${n}장 보냄`, withdraw:"이의 신청 철회하기", withdrawSure:"한 번 더 누르면 철회돼요(결정은 그대로예요)",
+       apNote:d => `✓ 이의 신청함 · 다른 심사자가 ${d}까지 답해 드려요`, zoomBtn:"크게", saveBtn:"저장", closeBtn:"닫기", apEv:"이의 신청 증빙 사진 보내기", apEvText:"이의 신청 증빙 사진이에요.", callReqDone:"전화 요청을 받았어요. 저희가 걸어 드릴게요", callReqHint:"해외에서 따로 국제전화를 거실 필요가 없어요.", callWhen:tz => `언제 받기 편하세요? 휴대폰 시계 기준이에요(${tz}).`, callCancel:"전화 요청 취소하기", callFrom:p => `${p} 번호로 걸려 와요.`, callChange:"이 시간이 어려워요", callChangeSent:"시간 변경을 요청했어요. 새 시각을 정해 여기로 알려 드릴게요.", callAt:t => `${t.getMonth() + 1}월 ${t.getDate()}일(${"일월화수목금토"[t.getDay()]}) ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")} 무렵 전화드려요(휴대폰 시계 기준).`, callCancelled:"전화 요청을 취소했어요", callAny:"아무 때나", callAm:"오전 9–12시", callPm:"오후 1–6시",
+       submitAskRetake:n => `다시 찍을 사진 ${n}장이 아직 남아 있어요. 지금 제출하면 그 사진은 빠진 채로 심사되고, 보험사가 나중에 다시 요청할 수 있어요. 그래도 제출할까요?`,
+       checkN:"확인 필요: 지금 서류로는 이 청구에 쓸 수 없어요. 본인 이름과 이 항공편이 적힌 서류로 다시 보내 주세요.",
+       why:{name_mismatch:"서류에 적힌 이름이 가입자 이름과 달라요.", flight_mismatch:"서류의 편명이나 날짜가 이번 여행과 달라요.", not_own:"이 청구에는 쓸 수 없는 서류예요.",
+            fix:"본인 이름과 이 항공편이 적힌 서류로 다시 보내 주세요.", fixReceipt:"본인이 결제한 영수증으로 보내 주세요."},
+       dueLine:u => u.kind === "pay" ? `지급 예정일: ${dueDate(u.date)} (추가 확인이 없을 때 · 보험사 심사에 따라 달라질 수 있어요)` : `확인 결과 안내: ${dueDate(u.date)}까지`, ready:"서류가 모두 모였어요.", submitted:"제출했어요. 보험사가 서류를 확인한 뒤 지급 여부와 일정을 알려 드려요.",
+       notYet:"남은 서류를 보내면 제출할 수 있어요.", offline:"인터넷 연결이 끊겼어요. 연결되면 다시 보내 주세요.", failed:"보내지 못했어요.", retry:"다시 보내기",
+       photos:n => `사진 ${n}장을 보냈어요`,
+       intro:{ev:(i) => `${md(i.date)} ${i.flight}편 ${i.event === "delayed" ? "지연" : "결항"}${i.reason ? ` (${i.reason.replace(/^Typhoon\s+(\S+)/i, "태풍 $1")})` : ""}`,
+              hi:n => `${n}님, 많이 놀라셨죠. ClausePath가 여행자보험 청구를 도와드릴게요.`,
+              plan:(p, l) => l ? `가입 플랜 <b>${p}</b> — 항공기 지연 담보 <b>하루 $${l[0]}, 여행당 $${l[1]}</b>까지` : `가입 플랜 <b>${p}</b> — 이 플랜에는 항공기 지연 담보가 없어요. 다른 방법이 있는지 물어봐 주세요.`,
+              period:p => `보험기간 ${period(p.join(" ~ "))}`, todo:"오늘 밤 챙길 것", t1:"항공사 카운터에서 결항 확인서 받기", t2:"호텔·식비·교통비 영수증 챙기기", t3:"지금 다 안 하셔도 돼요. 이 링크로 30일 동안 언제든 이어서 할 수 있어요.",
+              foot:"아래에 궁금한 걸 물어보거나 서류 사진을 보내 주세요. 최종 결정은 보험사가 해요."}, words:{cancelled:"결항", delayed:"지연", unreadable:"글씨가 안 보여요"}, graph:"연결 조항", map:"조항 관계도", tapNode:"다른 조항을 누르면 연결을 따라가요.", noLinks:"이 조항과 연결된 다른 조항이 없어요.", treeView:"2D", linksN:n => `연결 ${n}개`,
+       rel:{requires:{out:"필요한 조건", in:"이 조건이 필요한 조항"}, limit:{out:"적용되는 한도", in:"이 한도를 쓰는 조항"},
+            defines:{out:"쓰인 용어의 정의", in:"이 용어를 쓰는 조항"}, cause:{out:"보상하는 사유", in:"이 사유가 쓰이는 곳"},
+            lists:{out:"비용 목록", in:"이 목록을 쓰는 조항"}, applies:{out:"적용되는 곳", in:"여기에 적용되는 것"},
+            excludes:{out:"제외하는 대상", in:"이 조항의 예외"}, extends:{out:"늘려 주는 대상", in:"이 조항을 늘려 주는 것"},
+            contrast:{out:"비교해 볼 조항", in:"비교해 볼 조항"}, claims:{out:"청구 절차가 다루는 것", in:"청구 절차"},
+            decides:{out:"결정 대상", in:"최종 결정"}, explains:{out:"설명하는 조항", in:"쉬운 설명 (FAQ)"},
+            cites:{out:"본문에서 언급", in:"이 조항을 언급"}}, back:"관계도로", evidence:"근거", send:"보내기", ph:"질문이나 영수증 사진을 보내 주세요", phShort:"질문·사진 보내기", camBtn:"사진", close:"닫기", remove:"사진 빼기", bigger:"글자 크게", smaller:"글자 보통", sizeOff:"가+", sizeOn:"가−",
+       chips:["오늘 밤 호텔비 보상되나요?", "어떤 서류가 필요해요?", "보험 연장해야 하나요?", "보험금은 언제 받나요?"],
+       working:"ClausePath가 확인하는 중", checked:n => `확인한 과정 ${n}단계`, writing:"답변 작성 중",
+       secs:n => `${n}초`,
+       steps:{read:(d, now) => `사진 ${d.n}장 ${now ? "읽는 중" : "읽음"}`, search:(d, now) => `약관·FAQ 검색${now ? " 중" : ""} <small>“${esc(d.query)}”</small>`,
+              found:d => `관련 조항 <small>${names(d.items)}${d.faq ? ` · FAQ ${d.faq}건` : ""}</small>`, check:(d, now) => `${now ? "가입 조건·약관 대조 중" : "가입 조건 확인"} <small>${esc([d.plan, d.bought && md(d.bought) + " 가입", d.period && "보험기간 " + period(d.period)].filter(Boolean).join(" · "))}</small>`,
+              verdict:d => `약관 확인: ${({likely_covered:"보상하는 경우에 해당", likely_not_covered:"보상하는 경우에 해당 안 됨", needs_info:"추가 정보 필요", review:"담당자 확인 필요"})[d.status] || esc(d.status)} <small>${names(d.clauses)}</small>`,
+              cite:d => `근거 [${d.n}] 표시 <small>${esc(d.name || d.clause)}</small>`, secure:() => "보안 링크 생성", doc:d => docStep(d)},
+       docs_:{receipt:"영수증", airline_letter:"항공사 확인서", eticket:"전자항공권", boarding_pass:"탑승권"}, retake:"다시 찍어야 해요", reading:"읽는 중…", needsCheck:"확인이 필요해요", typing:"ClausePath가 확인하고 있어요…", docs:"서류",
+       note:"안내용이며 최종 결정은 보험사가 해요. 계좌·신분증 정보는 여기에 보내지 마세요.", via:{sms:"문자", email:"이메일", web:"", whatsapp:"WhatsApp", rcs:"RCS"},
+       you:"나", sent:"사진을 보냈어요", fail:"보내지 못했어요. 다시 시도해 주세요.", secure:"보안 페이지 열기"},
+}[CFG.locale] || {};
+const base = location.pathname.replace(/\/$/, "");
+const log = document.getElementById("log"), ta = document.getElementById("t");
+document.documentElement.lang = CFG.locale;
+document.getElementById("sub").textContent = `${T.helper} · ${CFG.subtitle}`;
+if (CFG.insurer) {  // who the traveler is dealing with, and a number to check it is real
+  document.getElementById("ins").textContent = CFG.insurer.name;
+  const call = document.getElementById("call");
+  if (CFG.insurer.phone) { call.href = `tel:${CFG.insurer.tel || CFG.insurer.phone}`; call.innerHTML = `${ic("phone")}<span class="lbl">${T.callShort}</span>`; call.setAttribute("aria-label", `${T.callShort} ${CFG.insurer.phone}`); call.title = CFG.insurer.phone; call.hidden = false; }
+}
+document.getElementById("note").textContent = T.note;
+// Language: shown in the welcome card and the documents sheet; the choice is saved for this traveler (texts too)
+const langSwitch = () => `<p class="langsw">${ic("globe")} ${[["ko", "한국어"], ["en", "English"]].map(([l, n]) =>
+  `<button type="button" data-lang="${l}" class="${CFG.locale === l ? "on" : ""}" ${CFG.locale === l ? 'aria-current="true"' : ""}>${n}</button>`).join(" · ")}</p>`;
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-lang]");
+  if (!b || b.dataset.lang === CFG.locale) return;
+  await fetch(`${base}/lang`, {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({locale: b.dataset.lang})});
+  location.reload();
+});
+document.addEventListener("click", e => {  // sent-photo thumbnail -> full screen; tap again to close
+  const th = e.target.closest(".sp:not(.reading)");
+  if (th) { const lb = Object.assign(document.createElement("div"), {id: "lightbox"}); lb.innerHTML = `<img src="${th.dataset.src}" alt="">`;
+    lb.onclick = () => lb.remove(); document.body.append(lb); }
+});
+ta.placeholder = T.ph;
+// Screen-reader names and the photo button in the traveler's language; "가+" makes everything larger and is remembered
+document.getElementById("camt").textContent = T.camBtn;
+document.getElementById("cam").setAttribute("aria-label", T.camBtn);
+document.getElementById("send").setAttribute("aria-label", T.send);
+["clx", "evclose"].forEach(id => document.getElementById(id).setAttribute("aria-label", T.close));
+[["evbig", T.zoomBtn], ["evpdf", T.saveBtn], ["evclose", T.closeBtn]].forEach(([id, w]) => document.getElementById(id).insertAdjacentHTML("beforeend", ` <span class="bl">${w}</span>`));
+const tsize = document.getElementById("tsize");
+const applySize = () => { const big = localStorage.getItem("bigText") === "1"; document.documentElement.classList.toggle("big-text", big);
+  tsize.textContent = big ? T.sizeOn : T.sizeOff; tsize.setAttribute("aria-label", big ? T.smaller : T.bigger); tsize.setAttribute("aria-pressed", big);
+  ta.placeholder = big ? T.phShort : T.ph;
+  document.getElementById("sub").textContent = big ? T.helperShort : `${T.helper} · ${CFG.subtitle}`; };  // "official" stays visible  // the long hint is cut off at the larger size
+tsize.onclick = () => { localStorage.setItem("bigText", localStorage.getItem("bigText") === "1" ? "0" : "1"); applySize(); };
+applySize();
+let waiting = 0;
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+// Stored messages carry masked links ("/secure/••••abcd"): show a button that mints a fresh one instead.
+const linkify = s => esc(s).replace(/https?:\/\/[^\s<]+/g, u =>
+  u.includes("/secure/") ? `<a class="btn" href="${base}/secure" rel="noreferrer">${T.secure}</a>`
+  : /\/c\/[^\s/]+\/decision/.test(u) ? `<a class="letter inl" href="${base}/decision" target="_blank" rel="noreferrer">${ic("file")} ${T.letterShort}</a>`
+  : u.includes("/c/") ? "" : `<a href="${u}" rel="noreferrer">${u}</a>`);
+// "TD-4" in a decision notice opens that clause, highlighted in the policy (no need to go through the letter)
+const clauseRefs = h => h.replace(/(^|[\s(:,])((?:TD|PLAN|EX|CL)-\d+)(?![\w\]])/g, (_, pre, c) => `${pre}<button type="button" class="clref" data-c="${c}">${c}</button>`);
+document.addEventListener("click", async e => {
+  const b = e.target.closest(".clref"); if (!b) return;
+  await loadAtlas(CFG.locale === "ko" ? "ko" : "en");
+  const n = ATLAS.nodes.find(x => x.clause === b.dataset.c); if (n) openViewer(n.id);
+});
+
+// Source cards. The server sends each passage once (d.evidence) and only its id on the messages that cite it;
+// cards and the viewer all point at the same page image URLs, so a page is downloaded once however often it is cited.
+const EV = {};                // passage id -> pages, rects, pdf
+const userFold = new Map();   // card index -> folded/unfolded by the traveler (wins over the agent)
+// The card of the reply still being written (data-i="live"): sources show as the agent cites them, before the words
+let liveMsg = {ev: []};
+const cardMsg = card => card.dataset.i === "live" ? liveMsg : msgs[+card.dataset.i];
+const pageHtml = (p, lazy) => `<div class="pg"><img src="${p.image}" alt=""${lazy ? ' loading="lazy"' : ""}>${p.rects.map(([x0, y0, x1, y1]) =>
+  `<i class="hl" style="left:${x0 * 100}%;top:${y0 * 100}%;width:${(x1 - x0) * 100}%;height:${(y1 - y0) * 100}%"></i>`).join("")}</div>`;
+const where = e => {
+  const ps = e.pages.map(p => p.page), span = ps.length > 1 ? `${ps[0]}–${ps.at(-1)}` : `${ps[0]}`;
+  return CFG.locale === "ko" ? `${span}${T.page}` : `${T.page} ${span}`;
+};
+const title = e => `<b>${esc(e.title || e.document)}</b> · ${e.id.startsWith("faq") ? "FAQ" : T.policy} ${where(e)}`;
+
+// A card per reply: one chip per source ([1] [2]) and the selected source's highlight cut from its page.
+function srcHtml(src) {
+  const e = EV[src.chunk]; if (!e) return "";
+  const all = e.pages.flatMap(p => p.rects);  // one horizontal frame for every page, so the text size stays the same
+  const xs = [Math.min(...all.map(r => r[0])), Math.max(...all.map(r => r[2]))];
+  const segs = e.pages.map(p => `<div class="seg" data-y="${Math.min(...p.rects.map(r => r[1]))},${Math.max(...p.rects.map(r => r[3]))}">${pageHtml(p, true)}</div>`);
+  return `<div class="bi">` + (src.caption ? `<div class="cap">${esc(src.caption)}</div>` : "")
+    + `<div class="crop" data-x="${xs.join(",")}">${segs.join("")}</div></div>`;
+}
+function cardHtml(m, i) {
+  const srcs = m.ev.filter(x => EV[x.chunk]); if (!srcs.length) return "";
+  // several sources: their buttons are the header itself, so they stay in reach when the card is folded
+  const head = srcs.length > 1 ? `<span class="srcs">${srcs.map(x => `<button type="button" class="src" data-n="${x.n}">${x.n} · ${esc(EV[x.chunk].title || EV[x.chunk].clause)}</button>`).join("")}</span>`
+                               : `<span class="t">${title(EV[srcs[0].chunk])}</span>`;
+  // what to do with the source shown: icons in the header too (whole document, linked clauses, PDF)
+  const acts = `<span class="acts"><button type="button" class="open" title="${T.open}" aria-label="${T.open}">${ic("expand")}</button>`
+    + `<button type="button" class="graph" title="${T.graph}" aria-label="${T.graph}">${ic("graph")}</button>`
+    + `<a class="pdf" href="${EV[srcs[0].chunk].pdf}" target="_blank" rel="noreferrer" title="PDF" aria-label="PDF">${ic("pdf")}</a></span>`;
+  return `<div class="card" data-i="${i}" data-n="${srcs[0].n}"><div class="hd" role="button" tabindex="0" aria-label="${T.evidence}">${srcs.length > 1 ? "" : ic("file")}${head}${acts}<span class="tog">${ic("down")}</span></div>`
+    + `<div class="body"></div></div>`;
+}
+function selectSource(card, n, pulse) {
+  const m = cardMsg(card), src = m.ev.find(x => x.n === n) || m.ev[0];
+  card.dataset.n = src.n;
+  card.querySelectorAll(".src").forEach(b => b.classList.toggle("on", +b.dataset.n === src.n));
+  log.querySelectorAll(`.ref[data-i="${card.dataset.i}"]`).forEach(b => b.classList.toggle("on", +b.dataset.n === src.n));
+  const body = card.querySelector(".body");
+  card.querySelector(".hd .pdf").href = EV[src.chunk].pdf;  // the header icons act on the source shown
+  if (body.dataset.n !== String(src.n) || pulse) { body.innerHTML = srcHtml(src); body.dataset.n = src.n; }  // same image URL: from cache
+  layoutCrop(body.querySelector(".crop"));
+}
+// "[1]" -> that source; "[TD-3]" -> the source showing clause TD-3 (scripted replies, older replies)
+function refsHtml(html, m, i) {
+  if (!m.ev) return html;
+  const byClause = Object.fromEntries(m.ev.filter(x => EV[x.chunk] && EV[x.chunk].clause).map(x => [EV[x.chunk].clause, x.n]));
+  return html.replace(/ ?\[(\d|[A-Z]+-\d+)\]([.,!?。]?)/g, (all, k, punct) => {  // keep "[1]." together on one line
+    const n = /^\d$/.test(k) ? (m.ev.some(x => x.n === +k) ? +k : 0) : byClause[k] || 0;
+    return n ? `<span class="nw"><button type="button" class="ref" data-i="${i}" data-n="${n}">${n}</button>${punct}</span>` : all;
+  });
+}
+function layoutCrop(crop) {  // the whole highlighted passage, as wide as the card: each page's highlighted part, stacked
+  if (!crop || crop.closest(".fold")) return;
+  const [x0, x1] = crop.dataset.x.split(",").map(Number), pad = 0.012, w = x1 - x0 + 2 * pad;
+  const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+  for (const seg of crop.querySelectorAll(".seg")) {
+    const pg = seg.firstChild, img = pg.querySelector("img");
+    if (!img.complete || !img.naturalWidth) continue;
+    const [y0, y1] = seg.dataset.y.split(",").map(Number), H = seg.clientWidth / w * img.naturalHeight / img.naturalWidth;
+    pg.style.width = `${100 / w}%`;
+    pg.style.left = `${-(x0 - pad) / w * 100}%`;
+    pg.style.top = `${-(y0 - pad) * H}px`;
+    seg.style.height = `${(y1 - y0 + 2 * pad) * H}px`;
+  }
+  if (jumpCard && jumpCard.contains(crop)) jumpToCard();  // a tapped reference: its card stays in view, not the end
+  else if (atEnd && crop.closest(".card") === [...log.querySelectorAll(".card")].at(-1)) log.scrollTop = log.scrollHeight;  // keep the newest reply in view
+}
+let jumpCard = null, jumpTimer = 0;
+function jumpToCard(card) {  // the card's top just under the chat header; holds while its images lay out
+  if (card) { jumpCard = card; clearTimeout(jumpTimer); jumpTimer = setTimeout(() => { jumpCard = null; }, 2000); }
+  if (!jumpCard) return;
+  log.scrollTo({top: log.scrollTop + jumpCard.getBoundingClientRect().top - log.getBoundingClientRect().top - 8, behavior: "smooth"});
+}
+function setFold(card, fold) {
+  if (card.classList.contains("fold") === fold && card.querySelector(".body").innerHTML) return;
+  card.classList.toggle("fold", fold);
+  if (!fold) selectSource(card, +card.dataset.n);
+}
+function applyFolds() {
+  // The newest card is open unless the agent folded it afterwards; older cards fold. The traveler's taps win.
+  let open = -1;
+  msgs.forEach((m, i) => { if (m.ev) open = i; else if (m.fold) open = -1; });
+  log.querySelectorAll('.card:not([data-i="live"])').forEach(c => { const i = +c.dataset.i; setFold(c, userFold.has(i) ? userFold.get(i) : i !== open); });
+}
+log.addEventListener("click", e => {
+  const tr = e.target.closest(".trail.done .hdr");
+  if (tr) { tr.parentElement.classList.toggle("open"); return; }
+  const ref = e.target.closest(".ref");
+  if (ref) {  // jump to the highlight this reference stands for
+    const card = log.querySelector(`.card[data-i="${ref.dataset.i}"]`); if (!card) return;
+    userFold.set(+ref.dataset.i, false);
+    jumpCard = card;
+    card.classList.remove("fold");
+    selectSource(card, +ref.dataset.n, true);
+    jumpToCard(card);
+    return;
+  }
+  const card = e.target.closest(".card"); if (!card) return;
+  if (e.target.closest(".src")) {  // a source button in the header: show that one, opening the card if folded
+    if (card.dataset.i !== "live") userFold.set(+card.dataset.i, false);
+    card.classList.remove("fold");
+    selectSource(card, +e.target.closest(".src").dataset.n, true);
+  }
+  else if (e.target.closest(".pdf")) return;  // the link opens the PDF
+  else if (e.target.closest(".graph")) openGraph(cardMsg(card).ev.find(x => x.n === +card.dataset.n).chunk);
+  else if (e.target.closest(".open, .crop")) openViewer(cardMsg(card).ev.find(x => x.n === +card.dataset.n).chunk);
+  else if (e.target.closest(".hd")) { const f = !card.classList.contains("fold"); if (card.dataset.i !== "live") userFold.set(+card.dataset.i, f); setFold(card, f); }
+});
+log.addEventListener("keydown", e => {  // the card header is a div (it holds buttons): Enter or Space folds it too
+  if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("hd")) { e.preventDefault(); e.target.click(); }
+});
+log.addEventListener("load", e => { const c = e.target.closest && e.target.closest(".crop"); if (c) layoutCrop(c); }, true);
+addEventListener("resize", () => log.querySelectorAll(".card:not(.fold) .crop").forEach(layoutCrop));
+
+const ev = document.getElementById("ev"), shade = document.getElementById("shade"), view = document.getElementById("evview");
+const NODE = {};  // clause graph nodes by id (filled from /docs/atlas-<lang>.json, cached by the browser)
+const passage = id => EV[id] || NODE[id];
+function openViewer(id, fromGraph = false) {
+  const e = passage(id); if (!e) return;
+  ev.classList.remove("g");
+  document.getElementById("evmode").hidden = true;
+  const back = document.getElementById("evback");  // opened from the clause map: one tap back to it
+  back.hidden = !fromGraph; back.innerHTML = `${ic("right", "flip")} ${T.back}`; back.onclick = resumeGraph;
+  document.getElementById("evt").innerHTML = title(e);
+  document.getElementById("evpdf").href = e.pdf;
+  view.innerHTML = (e.text ? `<div class="cltext"><b>${esc(e.clause ? `[${e.clause}] ` : "")}${esc(e.title || "")}</b>\n${esc(e.text.replace(/^[^\n]*\n/, ""))}</div>` : "")
+    + e.pages.map(p => pageHtml(p, false)).join("");   // same URLs as the card: served from cache
+  ev.hidden = shade.hidden = false;
+  const img = view.querySelector("img");
+  if (!e.text) img.complete ? focusHighlight() : (img.onload = focusHighlight);  // with the text on top, start at the top
+}
+function closeViewer() { ev.hidden = shade.hidden = true; view.innerHTML = ""; ev.classList.remove("g"); }
+
+// ---- clause graph, in 3D: tap a clause and its links branch out from it while the camera flies there ----
+let ATLAS = null, G = null, gCenter = null;
+async function loadAtlas(lang) {
+  if (ATLAS && ATLAS.lang === lang) return ATLAS;
+  ATLAS = await (await fetch(`/docs/atlas-${lang}.json?v=${CFG.docs}.2`)).json();
+  ATLAS.nodes.forEach(n => NODE[n.id] = n);
+  return ATLAS;
+}
+const short = id => (NODE[id].clause || "FAQ");
+function neighbours(id) {
+  const out = [];
+  for (const [a, b, type] of ATLAS.edges) {
+    if (a === id) out.push({id: b, type, dir: "out"});
+    else if (b === id) out.push({id: a, type, dir: "in"});
+  }
+  const faq = out.filter(n => NODE[n.id].kind === "faq").slice(0, 3);
+  const typed = n => n.type === "cites" ? 1 : 0;  // authored relations before plain mentions
+  const pol = out.filter(n => NODE[n.id].kind !== "faq").sort((a, b) => typed(a) - typed(b) || (a.dir === "out" ? 0 : 1) - (b.dir === "out" ? 0 : 1));
+  return [...pol, ...faq];
+}
+const F3 = 420, BRANCH = 175, MAX_BRANCH = 10;
+const add3 = (a, b, k = 1) => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k];
+const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const len3 = a => Math.hypot(a[0], a[1], a[2]) || 1, unit3 = a => { const l = len3(a); return [a[0] / l, a[1] / l, a[2] / l]; };
+const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+function spread(dir, n, cone) {  // n directions in a cone around dir (golden-angle spiral); cone = PI gives a whole sphere
+  const u = unit3(cross3(dir, Math.abs(dir[1]) < .9 ? [0, 1, 0] : [1, 0, 0])), w = cross3(dir, u), out = [];
+  for (let i = 0; i < n; i++) {
+    const th = cone * Math.sqrt((i + .5) / n), ph = i * 2.39996;
+    out.push(add3(dir.map(x => x * Math.cos(th)), add3(u.map(x => x * Math.cos(ph)), w, Math.sin(ph)), Math.sin(th)));
+  }
+  return out;
+}
+function relBetween(a, b) {
+  const e = ATLAS.edges.find(([x, y]) => (x === a && y === b) || (x === b && y === a));
+  return e && {type: e[2], dir: e[0] === a ? "out" : "in"};
+}
+function prune() {  // what matters is the clause in view: its links stay, the walked trail stays as faint dots, the rest folds away
+  const onPath = new Set(G.path), links = new Set(neighbours(G.focus).map(x => x.id));
+  for (const n of G.nodes.values()) {
+    const keep = onPath.has(n.id) || links.has(n.id);
+    if (!keep && !n.dying) { n.dying = true; const par = G.nodes.get(n.parent); if (par) n.p = [...par.p]; }
+    if (keep && !onPath.has(n.id)) n.expanded = false;  // tapping it again grows its branch again
+  }
+}
+function expand(id) {  // place this clause's links one branch further out, away from where we came from
+  const n = G.nodes.get(id); if (n.expanded) return; n.expanded = true;
+  const fresh = neighbours(id).filter(x => !G.nodes.has(x.id) || G.nodes.get(x.id).dying).slice(0, MAX_BRANCH);
+  fresh.forEach(x => { const old = G.nodes.get(x.id); if (old && old.el) old.el.remove(); G.nodes.delete(x.id); });
+  const parent = n.parent && G.nodes.get(n.parent);
+  // children fan out in a wide cone that continues the branch (the whole sphere around the first clause)
+  const dirs = parent ? spread(unit3(sub3(n.p, parent.p)), fresh.length, 1.3) : spread([0, 0, 1], fresh.length, Math.PI);
+  fresh.forEach((x, k) => G.nodes.set(x.id, {id: x.id, parent: id, p: add3(n.p, dirs[k], parent ? BRANCH * 1.1 : BRANCH), d: [...n.p], el: null}));
+}
+let graphMode = localStorage.getItem("graphMode") === "3d" ? "3d" : "cols";  // left-to-right columns read best; 3D is there to explore
+async function openGraph(id, keepPath = null) {
+  await loadAtlas(id.split("#")[0].split("_")[1]);
+  ev.classList.add("g");
+  document.getElementById("evback").hidden = true;
+  document.getElementById("evt").innerHTML = `<b>${ic("graph")} ${T.map}</b>`;
+  ev.hidden = shade.hidden = false;
+  const wrap = document.getElementById("gwrap");
+  wrap.querySelectorAll(".gn, .gempty, .gpath, .gpage, .gmode, .gtree, .gcols").forEach(e => e.remove());
+  document.getElementById("gsvg").innerHTML = "";
+  if (G && G.raf) cancelAnimationFrame(G.raf);
+  G = {root: id, nodes: new Map([[id, {id, parent: null, p: [0, 0, 0], d: [0, 0, 0], el: null}]]), focus: null, path: keepPath ? keepPath.slice(0, -1) : [],
+       cam: {t: [0, 0, 0], yaw: .5, pitch: .32, dist: 560}, goal: {t: [0, 0, 0], yaw: .5, pitch: .32}, idle: 0, raf: 0};
+  const mode = document.getElementById("evmode");
+  mode.hidden = false; mode.textContent = graphMode === "3d" ? T.treeView : "3D";
+  mode.onclick = () => { graphMode = graphMode === "3d" ? "cols" : "3d"; localStorage.setItem("graphMode", graphMode); openGraph(G.focus, G.path); };
+  wrap.classList.toggle("m3", graphMode === "3d");
+  wrap.classList.toggle("mt", graphMode !== "3d");
+  explore(id, null);
+}
+function resumeGraph() {  // back from a page: the explored tree and camera are where we left them
+  ev.classList.add("g");
+  document.getElementById("evmode").hidden = false;
+  document.getElementById("evback").hidden = true;
+  document.getElementById("evt").innerHTML = `<b>${ic("graph")} ${T.map}</b>`;
+  view.innerHTML = "";
+  graphDetail(G.focus, null);
+  if (graphMode === "3d" && !G.raf) G.raf = requestAnimationFrame(frame);
+}
+function explore(id, from) {
+  const prev = G.focus;
+  G.focus = id; gCenter = id;
+  // the trail is the way the traveler actually walked; tapping a clause already on it steps back to there
+  const at = G.path.indexOf(id);
+  G.path = at >= 0 ? G.path.slice(0, at + 1) : [...G.path, id];
+  drawPath();
+  graphDetail(id, from ?? prev);
+  const wrap = document.getElementById("gwrap");
+  wrap.querySelectorAll(".gempty").forEach(e => e.remove());
+  if (!neighbours(id).length && graphMode === "3d") wrap.append(Object.assign(document.createElement("div"), {className: "gempty", textContent: T.noLinks}));
+  if (graphMode === "3d") fly(id); else drawCols();
+}
+function fly(id) {
+  prune();
+  G.nodes.get(id).expanded = false;  // coming back to a clause: links folded away meanwhile grow again
+  expand(id);
+  const n = G.nodes.get(id), parent = n.parent && G.nodes.get(n.parent);
+  // fly: centre on the clause, look along the branch so its new links fan out in front of us
+  G.goal.t = [...n.p];
+  if (parent) {  // stand a little off the branch axis, behind the clause: new links open up like a flower, the trail stays to one side
+    const d = unit3(sub3(n.p, parent.p));
+    G.goal.yaw = Math.atan2(d[0], d[2]) + .5;
+    G.goal.pitch = Math.max(-.9, Math.min(.9, Math.atan2(d[1], Math.hypot(d[0], d[2])) + .3));
+    G.goal.dist = 470;
+  } else G.goal.dist = 600;
+  G.idle = 0;
+  if (!G.raf) G.raf = requestAnimationFrame(frame);
+}
+// ---- relation tree: the clause in view on top, its links below grouped by what they mean for it ----
+// Group names read as plain sentences from the viewed clause's side, e.g. "이 조항의 예외", "적용되는 한도".
+const GROUP_ORDER = ["requires", "limit", "excludes", "extends", "applies", "cause", "lists", "defines", "contrast", "claims", "decides", "explains", "cites"];
+function treeGroups(id) {
+  const groups = new Map();
+  for (const n of neighbours(id)) {
+    const key = `${n.type}:${n.dir}`;
+    if (!groups.has(key)) groups.set(key, {type: n.type, dir: n.dir, items: []});
+    groups.get(key).items.push(n.id);
+  }
+  return [...groups.values()].sort((a, b) => GROUP_ORDER.indexOf(a.type) - GROUP_ORDER.indexOf(b.type) || (a.dir === "in") - (b.dir === "in"));
+}
+// ---- left to right: each tap opens the tapped clause's links as a new column; the columns are the path ----
+function drawCols() {
+  const wrap = document.getElementById("gwrap");
+  document.getElementById("gsvg").innerHTML = "";
+  let box = wrap.querySelector(".gcols");
+  if (!box) {
+    box = Object.assign(document.createElement("div"), {className: "gcols"}); wrap.insertBefore(box, wrap.querySelector(".gpath"));
+    box.onclick = e => {
+      const b = e.target.closest(".tc"); if (!b) return;
+      const k = +b.closest(".col").dataset.k;                 // column k lists the links of path[k-1]
+      if (G.path[k] === b.dataset.id && k === G.path.length - 1) return;
+      G.path = G.path.slice(0, k);                            // fold everything right of this column
+      explore(b.dataset.id, G.path[k - 1]);
+    };
+    box.addEventListener("scroll", () => requestAnimationFrame(drawLinks), {passive: true});
+    addEventListener("resize", () => box.isConnected && drawLinks());
+  }
+  const grew = G.path.length > (G.cols || 0);
+  G.cols = G.path.length;
+  const root = G.path[0], n0 = NODE[root];
+  let html = `<div class="col c0" data-k="0"><div class="tf" data-id="${esc(root)}"><span class="td big">${esc(short(root))}</span><div><b>${esc(n0.title)}</b><small>${esc(n0.kind === "faq" ? "FAQ" : T.policy)}</small></div></div></div>`;
+  for (let k = 1; k <= G.path.length; k++) {
+    const from = G.path[k - 1], seen = new Set(G.path.slice(0, k));
+    const groups = treeGroups(from).map(g => ({...g, items: g.items.filter(x => !seen.has(x))})).filter(g => g.items.length);
+    let i = 0;
+    html += `<div class="col${k === G.path.length && grew ? " new" : ""}" data-k="${k}">`
+      + (groups.length ? groups.map(g => { const t = ATLAS.types[g.type], name = (T.rel[g.type] || {})[g.dir] || t.label;
+          return `<div class="cg" style="--c:${t.color}"><div class="ch">${esc(name)}</div>${g.items.map(x => { const m = NODE[x];
+            const label = m.kind === "faq" && m.title.length > 30 ? m.title.slice(0, 29) + "…" : m.title;
+            return `<button type="button" class="tc${G.path[k] === x ? " on" : ""}" data-id="${esc(x)}" data-type="${g.type}" style="animation-delay:${60 + i++ * 30}ms"><span class="td">${esc(short(x))}</span><span class="tt">${esc(label)}</span></button>`; }).join("")}</div>`; }).join("")
+        : `<div class="cempty">${T.noLinks}</div>`)
+      + `</div>`;
+  }
+  box.innerHTML = html + `<svg class="clinks"></svg>`;
+  setTimeout(drawLinks, 520); setTimeout(drawLinks, 900);  // again once the new column has slid in
+  requestAnimationFrame(() => {
+    drawLinks();
+    box.scrollTo({left: box.scrollWidth, behavior: grew ? "smooth" : "auto"});  // follow the branch to the right
+    const sel = box.querySelector(`.col[data-k="${G.path.length - 1}"] .tc.on`);
+    if (sel) { const r = sel.getBoundingClientRect(), b = box.getBoundingClientRect(); if (r.top < b.top || r.bottom > b.bottom) box.scrollTop += r.top - b.top - 40; }
+  });
+}
+function drawLinks() {  // curves from the chosen clause in each column to every link in the next one
+  const box = document.querySelector(".gcols"), svg = box && box.querySelector(".clinks"); if (!svg) return;
+  const B = box.getBoundingClientRect(), ox = box.scrollLeft - B.left, oy = box.scrollTop - B.top;
+  svg.setAttribute("width", box.scrollWidth); svg.setAttribute("height", box.scrollHeight);
+  let out = "";
+  box.querySelectorAll(".col[data-k]").forEach(col => {
+    const k = +col.dataset.k; if (!k) return;
+    const src = k === 1 ? box.querySelector(".c0 .tf .td") : box.querySelector(`.col[data-k="${k - 1}"] .tc.on`); if (!src) return;
+    const s = src.getBoundingClientRect(), x1 = (k === 1 ? s.right : src.closest(".tc").getBoundingClientRect().right) + ox, y1 = s.top + s.height / 2 + oy;
+    const hot = k === G.path.length;
+    col.querySelectorAll(".tc").forEach(t => {
+      const r = t.getBoundingClientRect(), x2 = r.left + ox, y2 = r.top + r.height / 2 + oy, mx = (x1 + x2) / 2;
+      const c = ATLAS.types[t.dataset.type].color, d = `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+      const lit = hot || t.classList.contains("on");
+      out += lit ? `<path class="glow" d="${d}" stroke="${c}"/><path class="edge" d="${d}" stroke="${c}"/>` : `<path d="${d}" stroke="${c}" stroke-opacity=".22" fill="none" stroke-width="1.2"/>`;
+    });
+  });
+  svg.innerHTML = out;
+}
+function drawPath() {
+  const wrap = document.getElementById("gwrap");
+  let bar = wrap.querySelector(".gpath");
+  if (!bar) { bar = Object.assign(document.createElement("div"), {className: "gpath"}); wrap.append(bar);
+              bar.onclick = e => { const b = e.target.closest("button"); if (b) explore(b.dataset.id, null); }; }
+  bar.innerHTML = G.path.map((k, i) => `${i ? ic("right") : ""}<button type="button" data-id="${esc(k)}" class="${k === G.focus ? "on" : ""}">${esc(short(k))}</button>`).join("");
+  bar.scrollLeft = bar.scrollWidth;
+}
+function frame() {
+  const wrap = document.getElementById("gwrap"), svg = document.getElementById("gsvg");
+  if (ev.hidden || !ev.classList.contains("g") || !G || graphMode !== "3d") { if (G) G.raf = 0; return; }
+  const W = wrap.clientWidth, H = wrap.clientHeight, c = G.cam, g = G.goal;
+  // ease the camera toward its goal; drift slowly once settled so the depth stays readable
+  c.t = c.t.map((v, i) => v + (g.t[i] - v) * .07);
+  if (!G.drag) { G.idle++; if (G.idle > 90) g.yaw += .0016; }
+  c.yaw += (g.yaw - c.yaw) * .06; c.pitch += (g.pitch - c.pitch) * .06; c.dist += ((g.dist || 560) - c.dist) * .08;
+  const cy = Math.cos(c.yaw), sy = Math.sin(c.yaw), cp = Math.cos(c.pitch), sp = Math.sin(c.pitch);
+  const proj = p => { let x = p[0] - c.t[0], y = p[1] - c.t[1], z = p[2] - c.t[2];
+    [x, z] = [x * cy - z * sy, x * sy + z * cy]; [y, z] = [y * cp - z * sp, y * sp + z * cp];
+    z += c.dist; if (z < 60) return null; const k = F3 / z; return {x: W / 2 + x * k, y: H / 2 + y * k, k, z}; };
+  const near = new Set([G.focus, ...neighbours(G.focus).map(x => x.id)]), onPath = new Set(G.path);
+  const pts = {};
+  for (const n of G.nodes.values()) {
+    n.d = n.d.map((v, i) => v + (n.p[i] - v) * .1);  // new branches grow out of their parent, folded ones shrink back into it
+    if (n.dying && len3(sub3(n.d, n.p)) < 3) { if (n.el) n.el.remove(); G.nodes.delete(n.id); continue; }
+    const q = proj(n.d); pts[n.id] = q;
+    if (!n.el) {
+      n.el = document.createElement("div"); wrap.insertBefore(n.el, wrap.querySelector(".gpath"));
+      n.el.onclick = e => { e.stopPropagation(); if (!G.moved) explore(n.id, G.focus); };
+    }
+    const isFocus = n.id === G.focus, rel = isFocus ? null : relBetween(G.focus, n.id), meta = NODE[n.id];
+    const color = isFocus ? "#3b6cff" : rel ? ATLAS.types[rel.type].color : onPath ? "#8aa2ff" : "#5b6b9a";
+    const key = `${isFocus}|${rel ? rel.type + rel.dir : ""}|${near.has(n.id)}|${onPath.has(n.id)}`;
+    if (n.key !== key) {  // rebuild the node only when its role changes
+      n.key = key;
+      const lb = meta.kind === "faq" && !isFocus && meta.title.length > 14 ? meta.title.slice(0, 13) + "…" : meta.title;
+      const tag = rel ? `<span class="rt">${rel.dir === "in" ? "← " : ""}${esc(ATLAS.types[rel.type].label)}${rel.dir === "out" ? " →" : ""}</span>` : "";
+      n.el.className = `gn g3${isFocus ? " c" : ""}${meta.kind === "faq" ? " faq" : ""}${near.has(n.id) ? "" : " far"}`;
+      n.el.style.setProperty("--c", color);
+      n.el.innerHTML = `<span class="dot">${esc(short(n.id))}</span>${tag}<span class="lb">${esc(lb)}</span>`;
+    }
+    if (!q) { n.el.style.display = "none"; continue; }
+    n.el.style.display = "";
+    const s = Math.max(.42, Math.min(1.15, q.k * 1.25)), fog = Math.max(.25, Math.min(1, 1.5 - q.z / 900));
+    n.el.style.transform = `translate(${q.x}px, ${q.y}px) scale(${isFocus ? Math.max(s, .95) : s})`;
+    n.el.style.opacity = n.dying ? Math.min(.5, fog) : near.has(n.id) ? Math.max(fog, .8) : onPath.has(n.id) ? .45 : fog * .7;
+    n.el.style.zIndex = String(2000 - Math.round(q.z));
+  }
+  // edges between every pair of placed clauses that the ontology links; the focus's links glow and flow
+  let html = "";
+  for (const [a, b, type] of ATLAS.edges) {
+    const A = pts[a], B = pts[b]; if (!A || !B) continue;
+    const hot = a === G.focus || b === G.focus, tree = G.nodes.get(b)?.parent === a || G.nodes.get(a)?.parent === b, col = ATLAS.types[type].color;
+    if (!hot && !tree) { html += `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${col}" stroke-opacity=".18" stroke-width="1"/>`; continue; }
+    const [s1, s2] = a === G.focus || (!hot && G.nodes.get(b)?.parent === a) ? [A, B] : [B, A];
+    html += `<line class="glow" x1="${s1.x}" y1="${s1.y}" x2="${s2.x}" y2="${s2.y}" stroke="${col}" ${hot ? "" : 'stroke-opacity=".35"'}/>`
+          + `<line class="edge${hot ? "" : " cold"}" x1="${s1.x}" y1="${s1.y}" x2="${s2.x}" y2="${s2.y}" stroke="${col}"/>`;
+  }
+  svg.innerHTML = html;
+  G.raf = requestAnimationFrame(frame);
+}
+// drag to turn the scene, wheel to zoom; a drag never counts as a tap on a clause
+(() => {
+  const wrap = document.getElementById("gwrap");
+  let last = null;
+  wrap.addEventListener("pointerdown", e => { if (!G || graphMode !== "3d" || e.target.closest(".gpath, .gmode, .gpage")) return; last = [e.clientX, e.clientY]; G.drag = true; G.moved = false; });
+  addEventListener("pointermove", e => { if (!last || !G) return; const dx = e.clientX - last[0], dy = e.clientY - last[1];
+    if (Math.abs(dx) + Math.abs(dy) > 3) G.moved = true;
+    G.goal.yaw += dx * .008; G.goal.pitch = Math.max(-1.1, Math.min(1.1, G.goal.pitch + dy * .006)); last = [e.clientX, e.clientY]; });
+  addEventListener("pointerup", () => { if (G) { G.drag = false; G.idle = 0; setTimeout(() => G && (G.moved = false), 0); } last = null; });
+  wrap.addEventListener("wheel", e => { if (!G || graphMode !== "3d") return; e.preventDefault(); G.goal.dist = Math.max(320, Math.min(980, (G.goal.dist || 560) + e.deltaY * .6)); }, {passive: false});
+})();
+function graphDetail(id, from) {
+  const n = NODE[id], det = document.getElementById("gdet");
+  const link = from && ATLAS.edges.find(([a, b]) => (a === from && b === id) || (a === id && b === from));
+  const all = n.pages.flatMap(p => p.rects), xs = [Math.min(...all.map(r => r[0])), Math.max(...all.map(r => r[2]))];
+  det.innerHTML = `<h4><b>${esc(n.clause ? `[${n.clause}]` : "FAQ")}</b> ${esc(n.title)}</h4>`
+    + (link ? `<div class="hint">${esc(short(link[0]))} → ${esc(ATLAS.types[link[2]].label)} → ${esc(short(link[1]))}</div>` : `<div class="hint">${T.tapNode}</div>`)
+    + `<div class="crop" data-x="${xs.join(",")}">${n.pages.map(p => `<div class="seg" data-y="${Math.min(...p.rects.map(r => r[1]))},${Math.max(...p.rects.map(r => r[3]))}">${pageHtml(p, false)}</div>`).join("")}</div>`
+    + `<div class="ft"><button type="button" id="gopen">${ic("expand")} ${T.open}</button><a href="${n.pdf}" target="_blank" rel="noreferrer">${ic("pdf")} PDF</a></div>`;
+  const crop = det.querySelector(".crop");
+  const fit = () => {  // the whole highlighted passage stays in view: narrow the preview (down to 60%) rather than scroll it
+    crop.style.width = ""; layoutCrop(crop);
+    const room = det.clientHeight - (det.scrollHeight - crop.offsetHeight), need = crop.offsetHeight;
+    if (need > room && room > 60) { crop.style.width = `${Math.max(60, 100 * room / need)}%`; layoutCrop(crop); }
+  };
+  const imgs = [...crop.querySelectorAll("img")];
+  Promise.all(imgs.map(i => i.complete ? 0 : new Promise(r => i.addEventListener("load", r, {once: true})))).then(fit);
+  document.getElementById("gopen").onclick = () => openViewer(id, true);
+}
+function focusHighlight() {  // bring the first highlighted line into view (and its left edge when zoomed)
+  const hl = view.querySelector(".hl"); if (!hl) return;
+  view.scrollTop = Math.max(0, hl.parentElement.offsetTop + hl.offsetTop - 30);
+  view.scrollLeft = Math.max(0, hl.offsetLeft - 12);
+}
+document.getElementById("evclose").onclick = closeViewer;
+shade.onclick = closeViewer;
+document.getElementById("evbig").onclick = () => { ev.classList.toggle("zoom"); focusHighlight(); };
+// The whole page fits the screen first (nothing cut off); ⤢ zooms in to reading size.
+
+// Welcome card: what happened, what the traveler bought, what to do tonight (facts only, no coverage judgement)
+(function intro() {
+  const i = CFG.intro, el = document.getElementById("intro"); if (!i || !T.intro) return;
+  const x = T.intro;
+  el.innerHTML = `<div class="ev">${ic("alert")} ${esc(x.ev(i))}</div><div>${esc(x.hi(i.name || ""))}</div>`
+    + (i.plan ? `<div class="plan">${x.plan(esc(i.plan), i.limits)}${i.period && i.period[0] ? `<small>${esc(x.period(i.period))}</small>` : ""}</div>` : "")
+    + `<div><b>${x.todo}</b><ol><li>${x.t1}</li><li>${x.t2}</li></ol><div class="muted">${ic("clock")} ${x.t3}</div></div><div class="muted">${x.foot}</div>${langSwitch()}`
+    + (CFG.insurer && CFG.insurer.phone ? `<div class="muted">${ic("phone")} ${esc(T.verify(CFG.insurer.phone))}</div>` : "")
+    // before the first photo: where photos and chat are processed (the privacy notice's transfers abroad)
+    + (CFG.where ? `<div class="muted">${ic("lock")} ${esc(T.where(CFG.where))}</div>` : "");
+  el.hidden = false;
+})();
+// Messages are append-only: render new ones and keep the existing nodes (and their images) as they are.
+const ICON = {read:"image", doc:"receipt", search:"search", found:"book", check:"shield", verdict:"scale", cite:"marker", secure:"lock", write:"pen"};
+function docStep(d) {  // "airline_letter: XX123 · 2026-10-05 · cancelled · Typhoon Hagi - …" -> "항공사 확인서 XX123 · 10/5 · 결항"
+  const [kind, rest] = d.summary.includes(": ") ? d.summary.split(/: (.*)/s) : [null, d.summary];
+  const label = (T.docs_ || {})[kind] || "";
+  let parts = (rest || "").split(" · ").map(x => T.words[x] || x);
+  if (rest === "unreadable") parts = [T.words.unreadable];
+  else if (kind === "airline_letter") parts = [parts[0], md(parts[1]), parts[2]];                 // reason text stays in the dashboard
+  else if (kind === "receipt") parts = [parts[0], parts[1], md(parts[2])];
+  else if (kind === "eticket" || kind === "boarding_pass") parts = [parts[0], md(parts[1]), parts[2]];
+  return `${esc(label)} <small>${esc(parts.filter(Boolean).join(" · "))}</small>${d.problem ? ` <span class="warn">${ic("alert")} ${/retake|unreadable/i.test(d.problem) ? T.retake : T.needsCheck}</span>` : ` <span class="ok">${ic("check")}</span>`}`;
+}
+const stepLi = (st, now, el, cls = "") => `<li class="${now ? "now" : ""} ${cls}">${now ? '<span class="spin"></span>' : `<span class="tile t-${st.kind}${st.problem ? " t-bad" : ""}">${ic(ICON[st.kind] || "check")}</span>`}<span class="x">${(T.steps[st.kind] || (() => esc(st.kind)))(st, now)}${el ? '<span class="el"></span>' : ""}</span></li>`;
+// One line per tool, as it starts: a step whose result has not come yet (check -> verdict, search -> found,
+// read -> doc) keeps the spinner on its own line. Tools can run at the same time, so this is per step, not the last one.
+const ENDS = {check: "verdict", search: "found", read: "doc"};
+function running(steps) {
+  const out = new Set();
+  for (const [k, end] of Object.entries(ENDS)) {
+    const starts = steps.map((st, i) => st.kind === k ? i : -1).filter(i => i >= 0);
+    const done = k === "read" ? starts.filter(i => steps.slice(i + 1).some(st => st.kind === end)).length
+                              : steps.filter(st => st.kind === end).length;
+    starts.slice(done).forEach(i => out.add(i));
+  }
+  return out;
+}
+// The live trail is redrawn on every step: lines already on screen stay still (old), only new ones rise, and a line
+// whose tool just finished pops its icon in place of the spinner.
+let liveDrawn = {n: 0, run: new Set(), tail: false, card: false};
+function trailHtml(steps, live) {
+  // the seconds count on the line still running shows it is still moving
+  if (live) {
+    const run = running(steps), first = Math.min(...run), was = liveDrawn;
+    const cls = i => i >= was.n ? "" : was.run.has(i) && !run.has(i) ? "old done-now" : "old";
+    const tail = run.size ? "" : `<li class="now${was.tail ? " old" : ""}"><span class="spin"></span><span class="x">${steps.length ? T.writing : T.typing}<span class="el"></span></span></li>`;
+    liveDrawn = {...was, n: steps.length, run, tail: !run.size};
+    return `<div class="hdr"><span class="orb"></span>${T.working}</div><ol>${steps.map((st, i) => stepLi(st, run.has(i), i === first, cls(i))).join("")}${tail}</ol>`;
+  }
+  return `<div class="hdr"><span class="tog">${ic("right")}</span>${ic("steps")} ${T.checked(steps.length)}</div><ol>${steps.map(st => stepLi(st)).join("")}</ol>`;
+}
+let shown = [], msgs = [], typingEl = null, liveSig = "", phaseAt = 0, phaseKey = "", photoSigs = [];
+// Photos the traveler sent come back as thumbnails, marked when one needs a retake or a check; tap to see it large.
+// Until the server has read them, the photos just sent show from the phone itself ("reading"), never as a line of text.
+const localThumbs = {}, localQueue = [];
+const msgKey = m => m.at + m.direction + m.text;
+const sentThumbs = m => (m.photos || []).length ? `<div class="sentph">${m.photos.map(p => `<button type="button" class="sp ${p.state}" data-src="${base}/photo/${esc(m.id)}/${p.i}">
+  <img src="${base}/photo/${esc(m.id)}/${p.i}" alt="" loading="lazy">${p.state !== "ok" ? `<span>${p.state === "retake" ? T.retake : T.needsCheck}</span>` : ""}</button>`).join("")}</div>`
+  : localThumbs[msgKey(m)] ? `<div class="sentph">${localThumbs[msgKey(m)].map(u => `<button type="button" class="sp reading"><img src="${u}" alt=""><span>${T.reading}</span></button>`).join("")}</div>` : "";
+const photoSig = m => (m.photos || []).map(p => p.state).join(",") + "|" + (localThumbs[msgKey(m)] ? "l" : "");
+const isNotice = m => m.direction === "out" && /\[(동의하지 않으면|If you disagree)\]/.test(m.text || "");
+const msgHtml = (m, i) => `<div class="m ${m.direction}" data-mi="${i}">${isNotice(m) ? '<div class="apnote" hidden></div>' : ""}${m.channel && m.channel !== "web" ? `<span class="via">${esc((T.via||{})[m.channel] || m.channel)}</span>` : ""}${m.media && m.media.length ? (sentThumbs(m) || ic("image") + " " + T.photos(m.media.length)) + (m.text && m.text !== "[attachment]" ? "\n" : "") : ""}${m.text === "[attachment]" ? "" : blocks(m.direction === "out" && /\[[^\]\d][^\]]{0,14}\]/.test(m.text || "") ? clauseRefs(refsHtml(linkify(m.text), m, i)) : refsHtml(linkify(m.text), m, i))}</div>`;
+// "[결과] …" at the start of a line in a decision notice reads as a small heading
+const blocks = h => h.replace(/(^|\n)\[([^\]\d][^\]]{0,14})\] ?/g, '$1<b class="blk">$2</b>\n');
+const outCount = () => msgs.filter(m => m.direction === "out").length;
+async function refresh() {
+  const r = await fetch(base + "/messages", {cache:"no-store"});
+  if (!r.ok) return;
+  const d = await r.json();
+  Object.assign(EV, d.evidence || {});
+  msgs = d.messages;
+  document.getElementById("bar").style.width = Math.round(100 * d.done / d.total) + "%";
+  claimState = d; try { drawChecklist(); } catch (e) { console.error(e); }
+  const outs = msgs.filter(m => m.direction === "out").length;
+  if (waiting && outs >= waiting) waiting = 0;  // waiting = the number of replies that ends the wait
+  // photos just sent take the thumbnails waiting on the phone (oldest first)
+  msgs.forEach(m => { if (m.direction === "in" && (m.media || []).length && !(m.photos || []).length && !localThumbs[msgKey(m)] && localQueue.length) localThumbs[msgKey(m)] = localQueue.shift(); });
+  const keys = msgs.map(m => m.at + m.direction + m.text);
+  if (keys.slice(0, shown.length).some((k, i) => k !== shown[i])) { log.querySelectorAll(":scope > :not(#intro)").forEach(e => e.remove()); shown = []; typingEl = null; pendingEl = null; photoSigs = []; }  // history changed: redraw
+  const start = shown.length, added = msgs.slice(start);
+  msgs.slice(0, start).forEach((m, i) => {
+    if (!(m.media || []).length || photoSigs[i] === photoSig(m)) return;
+    const el = log.querySelector(`.m[data-mi="${i}"]`);
+    if (el) el.outerHTML = msgHtml(m, i);
+    photoSigs[i] = photoSig(m);
+  });
+  const steps = (d.activity && d.activity.steps) || [];
+  const live = waiting || steps.length;
+  liveMsg = {ev: (d.activity && d.activity.sources) || []};
+  const sig = live ? JSON.stringify(steps) + JSON.stringify(liveMsg.ev) : "";
+  if (typingEl && (added.length || sig !== liveSig || !live)) { typingEl.remove(); typingEl = null; }
+  if (live && (sig !== liveSig || !phaseAt)) {  // the oldest line still running, or the reply once none is
+    const run = running(steps);
+    const key = run.size ? "s" + Math.min(...run) : "w" + steps.length;
+    if (key !== phaseKey) { phaseKey = key; phaseAt = Date.now(); }
+  }
+  if (!live) { phaseAt = 0; phaseKey = ""; liveDrawn = {n: 0, run: new Set(), tail: false, card: false}; }
+  if (added.length) {
+    // the traveler's words, shown at once on send, give way to the stored message (without sliding in twice)
+    const echo = pendingEl && added.some(m => m.direction === "in");
+    if (echo) { pendingEl.remove(); pendingEl = null; }
+    // what was checked, the sources, then the reply under them: the order they appeared in while it was written
+    const first = log.querySelectorAll(":scope > .m").length;
+    log.insertAdjacentHTML("beforeend", added.map((m, j) => (m.steps ? `<div class="trail done">${trailHtml(m.steps, false)}</div>` : "")
+      + (m.ev ? cardHtml(m, start + j) : "") + msgHtml(m, start + j)).join(""));
+    if (start) [...log.querySelectorAll(":scope > .m")].slice(first).forEach(e => { if (!(echo && e.classList.contains("in"))) e.classList.add("enter"); });  // not on page load
+    // applyFolds opens the right one; a card taking the live card's place opens without sliding again
+    log.querySelectorAll(".card").forEach(c => { if (+c.dataset.i >= start) c.classList.add("fold", "still"); });
+    requestAnimationFrame(() => requestAnimationFrame(() => log.querySelectorAll(".card.still").forEach(c => c.classList.remove("still"))));
+    shown = keys;
+    msgs.forEach((m, i) => { if (photoSigs[i] === undefined) photoSigs[i] = photoSig(m); });
+  }
+  applyFolds();
+  if (live && !typingEl) {  // one row per step, appearing as the agent works
+    typingEl = Object.assign(document.createElement("div"), {className: "livewrap",
+      innerHTML: `<div class="trail${liveDrawn.n || liveDrawn.tail ? " old" : ""}">${trailHtml(steps, true)}</div>` + (liveMsg.ev.length ? cardHtml(liveMsg, "live") : "")});
+    log.append(typingEl);
+    const card = typingEl.querySelector(".card");
+    if (card && !liveDrawn.card) card.classList.add("enter");
+    liveDrawn.card = !!card;
+    if (card) selectSource(card, liveMsg.ev.at(-1).n);  // the source just cited
+    log.scrollTop = log.scrollHeight;
+  }
+  liveSig = sig;
+  const el = typingEl && typingEl.querySelector(".el"), secs = Math.floor((Date.now() - phaseAt) / 1000);
+  if (el) el.textContent = secs >= 3 ? ` · ${T.secs(secs)}` : "";
+  if (added.length) log.scrollTop = log.scrollHeight;
+  sync();
+}
+
+// Sending never loses what the traveler typed or picked: on failure it comes back with a "try again" line.
+let pendingEl = null;
+async function post(body) {
+  waiting = outCount() + 1;  // also when the chat has no message from us yet (a link opened before any alert)
+  if (body.text && !body.images) {  // the words appear the moment they are sent, above "working…", not after the server's echo
+    if (pendingEl) pendingEl.remove();
+    pendingEl = Object.assign(document.createElement("div"), {className: "m in enter pending", textContent: body.text});
+    if (typingEl) log.insertBefore(pendingEl, typingEl); else log.append(pendingEl);
+    log.scrollTop = log.scrollHeight;
+  }
+  refresh();
+  let ok = false;
+  try {
+    const r = await fetch(base + "/send", {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({client_id: crypto.randomUUID(), ...body})});
+    ok = r.ok;
+  } catch (e) { ok = false; }
+  if (!ok) { waiting = 0; if (pendingEl) { pendingEl.remove(); pendingEl = null; } }  // the text goes back into the box
+  setTimeout(refresh, 600);
+  return ok;
+}
+function sendFailed(retry) {
+  log.querySelectorAll(".sendfail").forEach(x => x.remove());
+  const el = Object.assign(document.createElement("div"), {className: "sendfail", innerHTML: `${ic("alert")} ${T.failed}<button type="button">${ic("retry")} ${T.retry}</button>`});
+  el.querySelector("button").onclick = () => { el.remove(); retry(); };
+  log.append(el); log.scrollTop = log.scrollHeight;
+}
+const offline = document.getElementById("offline");
+const net = () => { offline.hidden = navigator.onLine; offline.innerHTML = ic("wifioff") + " " + T.offline; };
+addEventListener("online", net); addEventListener("offline", net); net();
+
+// Checklist sheet (header "서류 3/6 ▾") and the submit button once everything is in.
+let claimState = null;
+const cl = document.getElementById("cl");
+// Receipt by receipt: "ベイサイド… ¥16,500 → $110.00", with the rate, so the traveler can check the sum
+// the phone's time zone as people read it: "UTC−7" (and the place name when the browser knows it)
+// Korean: compared with Korea ("한국·일본과 같은 시간", "한국보다 16시간 늦어요"); English: the offset ("UTC−7")
+const tzLabel = () => { const o = -new Date().getTimezoneOffset(), d = (o - 540) / 60, h = Math.abs(d);
+  if (CFG.locale === "ko") return o === 540 ? "한국·일본과 같은 시간" : `한국보다 ${Number.isInteger(h) ? h : h.toFixed(1)}시간 ${d < 0 ? "늦어요" : "빨라요"}`;
+  return `UTC${o < 0 ? "−" : "+"}${Math.floor(Math.abs(o) / 60)}${Math.abs(o) % 60 ? ":" + String(Math.abs(o) % 60).padStart(2, "0") : ""}`; };
+const money = (cur, n) => cur === "JPY" ? `¥${(+n).toLocaleString()}` : `${esc(cur)} ${(+n).toLocaleString()}`;
+const estRows = e => {
+  const rows = (e.rows || []).filter(r => r.total);
+  if (!rows.length) return "";
+  const fx = rows.find(r => r.per_usd && r.currency !== "USD");
+  return `<details class="er"><summary>${T.estBreak(rows.length)}</summary>${rows.map(r => `<div><span>${esc(r.merchant || "")}</span>
+    <span>${money(r.currency, r.total)} → ${r.excluded && r.excluded.length ? `<s>$${(+r.usd || 0).toFixed(2)}</s> ${T.estOut}` : `$${(+r.counted_usd).toFixed(2)}`}</span></div>`).join("")}
+    ${fx ? `<small>${T.estRate(fx.per_usd, fx.currency)}</small>` : ""}</details>`;
+};
+let cbOpen = null;  // the call-time choices are open ({change: true} when they change a time staff set)
+function drawChecklist() {
+  const d = claimState; if (!d || !d.items) return;
+  document.getElementById("pl").textContent = T.docsN(d.done, d.total);
+  const complete = d.done === d.total, submitted = ["submitted", "approved", "denied"].includes(d.status);
+  const ready = document.getElementById("ready");
+  ready.hidden = !complete && !submitted;
+  ready.classList.toggle("sent", submitted);
+  document.getElementById("readyt").innerHTML = ic(d.status === "denied" ? "alert" : "done") + " " + (!submitted ? T.ready
+    : d.decision ? T.decided(d) : T.sentLine(d));
+  document.getElementById("readyb").textContent = submitted ? T.details : T.submit;
+  document.getElementById("clt").textContent = d.decision ? T.clTitleDecided : T.clTitle;  // after a decision this is where the result lives
+  const e = d.estimate || {};
+  const dec = d.decision ? `<div class="est ${d.decision.type === "deny" ? "deny" : ""}"><div class="el">${T.decTitle}</div><div class="ev">${d.decision.type === "deny" ? T.decDeny
+      : `$${(+d.decision.amount_usd).toFixed(2)}<small>${T.estKrw(Math.round(d.decision.amount_usd * (e.krw_per_usd || 1380)))}</small>`}</div>
+      ${(d.decision.lines || []).map(l => `<div class="es">${esc(l.merchant || "")}: $${(+l.from).toFixed(2)} → <b>$${(+l.to).toFixed(2)}</b> (${esc((T.adj || {})[l.reason] || l.reason)})</div>`).join("")}
+      <div class="es">${d.decision.type === "partial" ? T.decLess(e) : d.decision.type === "deny" ? T.decWhy : ""}</div>
+      ${d.decision.appeal ? `<div class="es appealed">${ic("done")} ${d.decision.appeal.resolved ? T.appealDone : T.appealed(dueDate(d.decision.appeal.reply_by))}</div>
+        ${!d.decision.appeal.resolved ? (() => { const a = d.decision.appeal;
+          const n = msgs.filter(m => m.direction === "in" && (m.at || "") > (a.at || "~")).reduce((k, m) => k + (m.media || []).length, 0);
+          return `<div class="es myap"><b>${T.myAppeal}</b> “${esc(a.text || "")}”${n ? `<br>${ic("image")} ${T.evN(n)}` : ""}</div>
+          <button type="button" class="letter" id="apev">${ic("image")} ${T.apEv}</button>
+          <button type="button" class="wbtn" id="apwd">${T.withdraw}</button>`; })() : ""}
+        ${!d.decision.appeal.resolved && d.decision.type === "partial" ? `<div class="es split">${T.splitLine(d, Math.max(0, d.decision.estimate_usd - d.decision.amount_usd).toFixed(2))}</div>` : ""}<div class="es">${T.fss}</div>`
+        : d.decision.appeal_by ? `<div class="es">${T.appealBy(dueDate(d.decision.appeal_by))}</div>
+          <div class="appeal"><button type="button" class="bigbtn" id="apb">${T.appealBtn}</button>
+            <a class="callbtn" href="tel:${esc((CFG.insurer || {}).tel || (CFG.insurer || {}).phone || "")}">${ic("phone")} ${T.callShort} ${esc((CFG.insurer || {}).phone || "")}</a>
+            <div id="apf" hidden><textarea id="apt" rows="3" placeholder="${esc(T.appealPh)}"></textarea><small id="apm" class="w" hidden></small>
+              <button type="button" class="bigbtn" id="aps">${T.appealSend}</button></div></div>` : ""}
+      <a class="letter" href="${base}/decision" target="_blank" rel="noreferrer">${ic("file")} ${T.letter}</a></div>` : "";
+  const est = dec || (e.covered && e.receipts_usd ? `<div class="est"><div class="el">${T.estTitle}</div><div class="ev">$${(+e.estimate_usd).toFixed(2)}<small>${T.estKrw(e.estimate_krw)}</small></div>
+      <div class="es">${T.estDetail(e)}</div>${estRows(e)}<div class="es">${T.estNote}</div></div>` : "");
+  const apt = document.getElementById("apt"), draft = apt && !document.getElementById("apf").hidden ? apt.value : null;  // keep a half-typed objection
+  document.getElementById("clb").innerHTML = est + d.items.map(it => `<div class="ci ${it.done ? "done" : ""}"><span class="b">${it.done ? ic("check") : ""}</span><div>${esc(it.label)}
+      ${it.retake ? `<small class="w">${ic("alert")} ${T.retakeN(it.retake)}</small>` : ""}
+      ${!it.done && it.check ? `<small class="w">${ic("alert")} ${(it.why || []).length ? it.why.map(w => T.why[w] || "").join(" ") + " " + (it.key === "expense_receipts" ? T.why.fixReceipt : T.why.fix) : T.checkN}</small>` : ""}
+      ${!it.done ? (it.secure ? `<small>${T.secureHint}</small><a href="${base}/secure" rel="noreferrer">${ic("lock")} ${T.securePage}</a>` : `<small>${T.sendHint}</small>`) : ""}</div></div>`).join("")
+    + (submitted ? `<p class="clnote"><span class="ok">${ic("done")}</span> ${d.decision ? "" : T.submitted}${d.due ? `${d.decision ? "" : "<br>"}${T.dueLine(d.due)}` : ""}${d.payout ? `<br>${T.payto}: ${esc(d.payout.bank)} •••${esc(d.payout.account_last4)}` : ""}</p>`
+       : `<button type="button" class="bigbtn" id="subm" ${complete ? "" : "disabled"}>${T.submit}</button>${complete ? "" : `<p class="clnote">${T.notYet}</p>`}`)
+    + `<div class="callreq"><button type="button" id="cbr" ${d.callback ? "disabled" : ""}>${ic("phone")} ${d.callback ? T.callReqDone : T.callReq}</button><div class="cbw" id="cbw" hidden><small>${T.callWhen(tzLabel())}</small>${["any", "am", "pm"].map(p => `<button type="button" data-p="${p}">${T["call" + p[0].toUpperCase() + p.slice(1)]}</button>`).join("")}</div>${d.callback && d.callback.due ? `<small class="cbwhen">${ic("clock")} ${T.callAt(new Date(d.callback.due))}${CFG.insurer && CFG.insurer.phone ? `<br>${esc(T.callFrom(CFG.insurer.phone))}` : ""}</small>` : ""}${d.callback && !d.callback.requested
+      ? (d.callback.change_requested ? `<small>${T.callChangeSent}</small>` : `<button type="button" class="cbx" id="cbch">${T.callChange}</button>`) : ""}${d.callback && d.callback.requested ? `<button type="button" class="cbx" id="cbx">${T.callCancel}</button>` : ""}<small>${T.callReqHint}</small></div>`
+    + langSwitch();
+  const sb = document.getElementById("subm"); if (sb) sb.onclick = submitClaim;
+  const apwd = document.getElementById("apwd");  // two taps, no pop-up: the first one says what happens
+  if (apwd) apwd.onclick = async () => { if (!apwd.dataset.sure) { apwd.dataset.sure = "1"; apwd.textContent = T.withdrawSure; return; }
+    apwd.disabled = true; const r = await fetch(base + "/appeal_withdraw", {method: "POST", headers: {"content-type": "application/json"}, body: "{}"}).catch(() => null);
+    if (r && r.ok) refresh(); else apwd.disabled = false; };
+  const ap = d.decision && d.decision.appeal;  // earlier notices: say the objection is already in
+  document.querySelectorAll(".apnote").forEach(n => { n.hidden = !(ap && !ap.resolved); if (ap && !ap.resolved) n.textContent = T.apNote(dueDate(ap.reply_by)); });
+  const apev = document.getElementById("apev");  // evidence for the objection: same photo path, labelled for the reviewer
+  if (apev) apev.onclick = () => { cl.hidden = true; if (!ta.value.trim()) { ta.value = T.apEvText; sync(); } document.getElementById("file").click(); };
+  const cbr = document.getElementById("cbr");  // abroad, a call to Korea costs: ask the insurer to call instead
+  const cbx = document.getElementById("cbx");  // changed plans: take the request back (staff see it go)
+  if (cbx) cbx.onclick = async () => { cbx.disabled = true;
+    const r = await fetch(base + "/callback", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({cancel: true})}).catch(() => null);
+    if (r && r.ok) { claimState.callback = null; refresh(); } else cbx.disabled = false; };
+  const cbch = document.getElementById("cbch");  // a time staff set does not suit: pick a window, staff set a new time
+  const cbw = document.getElementById("cbw");  // first tap: pick a window in the traveler's own time; the server finds the slot
+  // the sheet is redrawn on every refresh: the open choices (and whether they change a staff time) survive it
+  if (cbw && cbOpen) { cbw.hidden = false; if (cbOpen.change) cbw.dataset.change = "1"; }
+  if (cbch) cbch.onclick = () => { cbOpen = cbOpen ? null : {change: true}; cbw.dataset.change = "1"; cbw.hidden = !cbOpen; };
+  if (cbr) cbr.onclick = () => { cbOpen = cbOpen ? null : {change: false}; delete cbw.dataset.change; cbw.hidden = !cbOpen; };
+  if (cbw) cbw.onclick = async e => { const b = e.target.closest("button"); if (!b) return;
+    cbw.querySelectorAll("button").forEach(x => x.disabled = true); cbr.disabled = true;
+    const body = JSON.stringify({pref: b.dataset.p, offset_min: -new Date().getTimezoneOffset(), change: !!cbw.dataset.change});
+    const r = await fetch(base + "/callback", {method: "POST", headers: {"content-type": "application/json"}, body}).catch(() => null);
+    if (r && r.ok) { cbOpen = null; claimState.callback = cbw.dataset.change ? {...claimState.callback, change_requested: true} : {requested: true}; cbw.hidden = true; cbr.innerHTML = ic("phone") + " " + T.callReqDone; refresh(); }
+    else { cbr.disabled = false; cbw.querySelectorAll("button").forEach(x => x.disabled = false); } };
+  const apb = document.getElementById("apb");  // objection: say why in a sentence; it goes to a different reviewer
+  if (apb && draft !== null) { apb.hidden = true; document.getElementById("apf").hidden = false; document.getElementById("apt").value = draft; }
+  if (apb) apb.onclick = () => { document.getElementById("apf").hidden = false; apb.hidden = true; document.getElementById("apt").focus(); };
+  const aps = document.getElementById("aps");
+  if (aps) aps.onclick = async () => {  // say what happened every time: too short, sending, failed, sent
+    const text = document.getElementById("apt").value.trim(), msg = document.getElementById("apm");
+    const show = t => { msg.textContent = t; msg.hidden = !t; };
+    if (text.length < 5) return show(T.appealShort);
+    aps.disabled = true; aps.textContent = T.sending; show("");
+    try {
+      const r = await fetch(`${base}/appeal`, {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({text})});
+      if (!r.ok) throw new Error(r.status);
+      refresh();
+    } catch (e) {
+      show(navigator.onLine ? T.appealFailed : T.offline);
+    } finally { aps.disabled = false; aps.textContent = T.appealSend; }
+  };
+}
+// A question inside the page (a sheet from the bottom), not the browser's confirm box: same look as the chat,
+// in the traveler's language, and it stays inside the phone when the chat is shown in a frame.
+function ask(text, yes, no) {
+  const d = document.getElementById("askd");
+  document.getElementById("askt").textContent = text;
+  const y = document.getElementById("asky"), n = document.getElementById("askn");
+  y.textContent = yes; n.textContent = no;
+  return new Promise(res => {
+    const done = v => { d.onclose = null; d.close(); res(v); };
+    y.onclick = () => done(true); n.onclick = () => done(false); d.onclose = () => res(false);
+    d.showModal(); y.focus();
+  });
+}
+async function submitClaim() {
+  const left = (claimState.items || []).reduce((n, it) => n + (it.retake || 0), 0);  // photos still waiting for a retake
+  if (!await ask(left ? T.submitAskRetake(left) : T.submitAsk, T.askYes, T.askNo)) return;
+  cl.hidden = true;
+  waiting = outCount() + 1;
+  try { await fetch(base + "/submit", {method: "POST"}); } catch (e) { waiting = 0; sendFailed(submitClaim); }
+  refresh();
+}
+document.getElementById("prog").onclick = () => { drawChecklist(); cl.hidden = !cl.hidden; };
+document.getElementById("clx").onclick = () => cl.hidden = true;
+document.getElementById("readyb").onclick = () => claimState && ["submitted", "approved", "denied"].includes(claimState.status) ? (drawChecklist(), cl.hidden = false) : submitClaim();
+
+// Composer: text grows with the content, photos wait as thumbnails until Send, suggestions until the first question.
+const send = document.getElementById("send"), thumbs = document.getElementById("thumbs"), chips = document.getElementById("chips");
+let pending = [];  // [{file, url}]
+const sync = () => {
+  ta.style.height = "auto"; ta.style.height = (ta.value ? Math.min(ta.scrollHeight, 132) : 40) + "px";  // placeholder never adds lines
+  send.disabled = !ta.value.trim() && !pending.length;
+  chips.hidden = !!ta.value.trim() || pending.length > 0 || msgs.some(m => m.direction === "in");
+};
+ta.addEventListener("input", sync);
+chips.innerHTML = (T.chips || []).map(c => `<button type="button">${esc(c)}</button>`).join("");
+chips.onclick = e => { const b = e.target.closest("button"); if (b) { post({text: b.textContent}); chips.hidden = true; } };
+function drawThumbs() {
+  thumbs.innerHTML = pending.map((p, i) => `<div class="th" style="background-image:url('${p.url}')"><button type="button" data-i="${i}" aria-label="${T.remove}">${ic("x")}</button></div>`).join("");
+  sync();
+}
+thumbs.onclick = e => { const b = e.target.closest("button"); if (!b) return; URL.revokeObjectURL(pending[+b.dataset.i].url); pending.splice(+b.dataset.i, 1); drawThumbs(); };
+document.getElementById("cam").onclick = () => document.getElementById("file").click();
+document.getElementById("file").onchange = e => {
+  for (const file of [...e.target.files].slice(0, 8 - pending.length)) pending.push({file, url: URL.createObjectURL(file)});
+  e.target.value = ""; drawThumbs(); ta.focus();
+};
+async function shrink(file) {  // 1600 px JPEG on the phone before upload
+  const img = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const c = Object.assign(document.createElement("canvas"), {width: Math.round(img.width * scale), height: Math.round(img.height * scale)});
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return {data: c.toDataURL("image/jpeg", 0.85).split(",")[1], mime: "image/jpeg", filename: file.name || "photo.jpg"};
+}
+document.getElementById("f").onsubmit = async e => {
+  e.preventDefault();
+  const text = ta.value.trim(), files = pending;
+  if (!text && !files.length) return;
+  pending = []; ta.value = ""; drawThumbs();
+  const restore = (textBack = text) => {  // put everything back so nothing has to be typed or picked again
+    if (!ta.value) ta.value = textBack;
+    pending = [...files, ...pending]; drawThumbs();
+    sendFailed(() => document.getElementById("f").requestSubmit());
+  };
+  if (!files.length) { if (!(await post({text}))) restore(); return; }
+  const images = await Promise.all(files.map(p => shrink(p.file)));
+  for (let k = 0; k < files.length; k += 4) localQueue.push(files.slice(k, k + 4).map(p => p.url));  // shown until read
+  let sentText = text;
+  for (let k = 0; k < images.length; k += 4) {  // request size limit
+    if (!(await post({text: sentText, images: images.slice(k, k + 4)}))) { files.splice(0, k); restore(k ? "" : text); return; }
+    sentText = "";
+  }
+};
+ta.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && innerWidth >= 700) { e.preventDefault(); document.getElementById("f").requestSubmit(); } });
+(function loop() { refresh().finally(() => setTimeout(loop, waiting || liveSig ? 900 : 2500)); })();
+</script>
+</body>
+</html>

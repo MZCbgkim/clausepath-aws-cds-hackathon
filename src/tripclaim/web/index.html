@@ -1,0 +1,1348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ClausePath — Claims desk</title>
+<script src="/config.js"></script>
+<script>
+// Decide before anything renders: no valid login -> straight to the Cognito login page.
+(function () {
+  const cfg = window.TRIPCLAIM || {auth: false};
+  window.loginUrl = () => `https://${cfg.domain}/login?client_id=${cfg.clientId}&response_type=token&scope=openid+email&redirect_uri=${encodeURIComponent(location.origin + "/")}`;
+  window.logoutUrl = () => `https://${cfg.domain}/logout?client_id=${cfg.clientId}&logout_uri=${encodeURIComponent(location.origin + "/")}`;
+  if (!cfg.auth) return;
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get("id_token")) { sessionStorage.setItem("idt", h.get("id_token")); history.replaceState(null, "", "/"); }
+  const t = sessionStorage.getItem("idt");
+  let valid = false;
+  try { valid = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).exp * 1000 > Date.now() + 30000; } catch (e) {}
+  if (!valid) {
+    sessionStorage.removeItem("idt");
+    window.redirecting = true;
+    document.documentElement.style.display = "none";
+    location.replace(window.loginUrl());
+  }
+})();
+</script>
+<style>
+  :root { --ink:#1b2230; --muted:#4f5868; --line:#e4e7ee; --bg:#f6f7fa; --blue:#1f4fd8; --green:#0f8a5f; --amber:#b25e09; --red:#c0362c;
+          --wa:#1f9d55; --rcs:#6b4bd8; --sms:#4b5563; --email:#1f4fd8; }
+  * { box-sizing:border-box } body { margin:0; font:15px/1.55 system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif; color:var(--ink); background:var(--bg) }
+  header { display:flex; align-items:center; gap:1rem; padding:.7rem 1.2rem; background:#fff; border-bottom:1px solid var(--line) }
+  .basis { margin:.6rem 0 } .basis b { display:block; font-size:.85rem; color:var(--muted); margin-bottom:.25rem }
+  .basis .cl { display:inline-block; margin:0 .35rem .3rem 0; padding:.15rem .5rem; border-radius:8px; background:#f3f5fa; font-size:.9rem }
+  .basis code { color:var(--blue); font-size:.8rem } .sumline { margin:.2rem 0 .8rem; padding:.45rem .7rem; border-radius:8px; background:#eef6f1; font-size:.92rem }
+  .adjsum { color:#b45309 } .adjsum[hidden] { display:none }
+  input.adj { width:5.5rem; padding:.2rem .3rem; border:1px solid var(--line); border-radius:6px; font:inherit } select.adjr { margin-top:.2rem; font-size:.82rem } select.adjr:not([hidden]) { display:block }
+  .curdec { margin:.3rem 0 .5rem; padding:.5rem .7rem; border-radius:8px; background:#eef6f1 } .curdec small { display:block; color:var(--muted) }
+  .curdec b { display:block; font-size:1.1rem } .curdec .muted { font-size:.85rem } .correct-help { font-size:.82rem }
+  .decide[hidden] { display:none } .decide { margin:.2rem 0 .4rem } .decide .amt { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; margin:.25rem 0 .4rem } .decide .amt small { flex-basis:100% }
+  .decide .amt input { width:8rem; padding:.4rem .5rem; border:1px solid var(--line); border-radius:8px; font:inherit }
+  .decide details summary { cursor:pointer; font-size:.88rem; color:var(--muted) } .clp { display:block; font-size:.88rem; margin:.15rem 0 }
+  .clp code { color:var(--blue) } button.danger { color:#b42318; border-color:#f3c5c0 }
+  #detail > .card.support { margin:.2rem 0 1rem }
+  .card.support .owner { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap } .card.support .handoff.hn { color:#475467 }
+  .card.support textarea { width:100%; min-height:3.2rem } .card.support .sbtns { display:flex; flex-wrap:wrap; gap:.35rem }
+  .why .ses { color:#0f8a5f; font-weight:600 }
+  #ud::backdrop { background:rgba(15,20,35,.45) }
+  #ud #udm { white-space:pre-wrap; margin:.2rem 0 .7rem; line-height:1.5 } #ud textarea { width:100%; font:inherit }
+  .dlg { border:0; border-radius:12px; padding:1rem 1.2rem; width:min(460px, 92vw) } .dlg label { display:block; margin:.5rem 0 } .dlg label span { display:block; font-size:.85rem; color:var(--muted) }
+  .dlg select, .dlg textarea, .dlg input { width:100%; padding:.4rem .5rem; border:1px solid var(--line); border-radius:8px; font:inherit } .dlg .btns { text-align:right }
+  .canned { display:flex; flex-wrap:wrap; gap:.3rem; margin:.3rem 0 } .canned button { font-size:.8rem; padding:.2rem .5rem }
+  #idd { border:0; border-radius:12px; padding:1rem 1.2rem; width:min(420px, 92vw) } #idd label { display:block; margin:.35rem 0 }
+  #idd input#ido { width:100%; margin-top:.3rem; padding:.35rem .5rem } #idd .btns { text-align:right }
+  #fo { margin-left:.3rem }
+  .support { margin:.4rem 0 .6rem; padding:.5rem .6rem; border-radius:8px; background:#f6f8fc } .support b { font-size:.85rem; color:var(--muted) }
+  .support p { margin:.35rem 0 0; display:flex; flex-wrap:wrap; gap:.35rem }
+  #imgv { border:0; border-radius:12px; padding:.8rem 1rem; width:min(1100px, 95vw); max-height:92vh } #imgv::backdrop { background:rgba(15,20,35,.5) }
+  .ivbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem } #ivb { display:grid; gap:.8rem; overflow:auto; max-height:76vh }
+  #ivb.two { grid-template-columns:1fr 1fr } #ivb figure { margin:0; text-align:center } #ivb img { max-width:100%; max-height:70vh; cursor:zoom-in; transition:transform .2s }
+  #ivb img.full { max-width:none; max-height:none; cursor:zoom-out } #ivb figcaption { font-size:.85rem; color:var(--muted); margin-top:.3rem }
+  button.link { border:0; background:none; padding:.2rem 0; color:var(--blue); cursor:pointer; font-size:.85rem }
+  .tile.few b { color:var(--muted) } .tile em { display:block; font-style:normal; font-size:.75rem; color:#b45309; margin-top:.2rem }
+  .trend { display:flex; gap:1.5rem; flex-wrap:wrap } .trend div { display:flex; align-items:center; gap:.5rem } .trend small { color:var(--muted) }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:.6rem; margin:.6rem 0 1rem }
+  .tile { background:#fff; border:1px solid var(--line); border-radius:10px; padding:.7rem .8rem } .tile small { display:block; color:var(--muted); font-size:.82rem }
+  .tile b { display:block; font-size:1.6rem; margin:.15rem 0 } .tile span { font-size:.8rem; color:var(--muted) }
+  .pending { margin:.4rem 0 .8rem; padding:.7rem .9rem; border-radius:10px; background:#fff7e6; border:1px solid #ffd591 } .pending p { margin:.3rem 0 }
+  #cbwarn { color:#b45309; font-weight:600; font-size:.9rem }
+  .dlg [hidden] { display:none !important } .dlg label.cb { display:flex; flex-direction:row; align-items:center; gap:.5rem; font-weight:600 }
+  .dlg label.cb input { width:auto; margin:0 } .dlg label.cb span { display:inline; color:var(--ink); font-size:.9rem }
+  .hn { color:#475467 } .hs { color:#b45309 } .ho { color:#b42318 } .derr { color:#b42318; font-size:.85rem; min-height:1em; margin:.2rem 0 }
+  .dlg #gdb p.muted { white-space:pre-wrap; font-size:.95rem; color:var(--ink) } .dlg .pv { background:#f4f6fb; border-radius:8px; padding:.5rem .7rem; font-size:.85rem; white-space:pre-wrap } .calls { font-size:.85rem; margin:.2rem 0 .5rem }
+  .kh { font-size:.95rem; margin:.9rem 0 .4rem } .kh small { font-weight:400; margin-left:.4rem }
+  .tile.alarm { border-color:#f04438; background:#fef3f2 } .tile.alarm b { color:#b42318 }
+  .kbar { display:flex; gap:.5rem; align-items:center; margin:.3rem 0 .6rem } .trend small.pk { display:block; color:#667085; font-size:.72rem }
+  .pendb { color:#b45309; font-size:.8rem; font-weight:600 } .bq { font-size:.88rem; margin:.3rem 0 } .bq button { margin-left:.3rem }
+  .auditbar { display:flex; gap:.4rem; flex-wrap:wrap; align-items:center } .auditbar input, .auditbar select { padding:.35rem .5rem; border:1px solid var(--line); border-radius:8px; font:inherit }
+  .auditbar #aq { flex:1; min-width:12rem } #at td { vertical-align:top; font-size:.9rem } #at td:nth-child(-n+4) { white-space:nowrap } #at td.muted { max-width:28rem; word-break:break-all }
+  #bulk { border:0; border-radius:12px; padding:1.1rem 1.3rem; width:min(480px, 92vw); box-shadow:0 12px 40px rgba(20,30,60,.3) }
+  #bulk::backdrop { background:rgba(15,20,35,.35) } #bulk h3 { margin:0 0 .5rem } #bulk .big { font-size:1.3rem; font-weight:700; margin:.2rem 0 }
+  #bulk .sample { margin:.4rem 0; padding:.5rem .6rem; border-radius:8px; background:#f3f5fa; font-size:.9rem; white-space:pre-wrap }
+  #bulk .sample small { display:block; color:var(--muted); font-weight:700 } #bulk .w { color:#b45309 } #bulk .btns { text-align:right; margin:.8rem 0 0 }
+  #bulk .cb { display:flex; gap:.4rem; align-items:flex-start; font-size:.9rem }
+  header b { color:var(--blue); font-size:1.05rem } header .sub { color:var(--muted) }
+  header form { margin-left:auto; display:flex; gap:.4rem; align-items:center }
+  input, select, textarea, button { font:inherit } input, select { padding:.35rem .5rem; border:1px solid var(--line); border-radius:6px }
+  button { padding:.4rem .8rem; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer }
+  button.primary { background:var(--blue); color:#fff; border-color:var(--blue) }
+  main { display:grid; grid-template-columns:340px 1fr; height:calc(100vh - 56px) }
+  #list { border-right:1px solid var(--line); overflow:auto; background:#fff }
+  .row { padding:.75rem 1rem; border-bottom:1px solid var(--line); cursor:pointer } .row:hover, .row.on { background:#eef3ff }
+  .row .top { display:flex; justify-content:space-between } .row .meta { color:var(--muted); font-size:12px }
+  .chip { display:inline-block; padding:.05rem .5rem; border-radius:99px; font-size:12px; font-weight:600; background:#eef0f4; color:var(--muted) }
+  .chip.ready, .chip.approved, .chip.likely_covered { background:#e3f5ee; color:var(--green) }
+  .chip.review, .chip.info_requested, .chip.denied, .chip.likely_not_covered { background:#fde9e7; color:var(--red) }
+  .chip.collecting, .chip.alerted, .chip.needs_info { background:#fdf1e2; color:var(--amber) }
+  .chip.submitted { background:#e6ecff; color:var(--blue) }
+  #detail { overflow:auto; padding:1.2rem 1.4rem }
+  .grid { display:grid; grid-template-columns:2fr 1fr; gap:1rem } .wide { grid-column:1/-1 }
+  @media (max-width:1100px) { .grid { grid-template-columns:1fr } }
+  .lang { display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden } .lang button { border:0; border-radius:0 } .lang .on { background:var(--ink); color:#fff }
+  ul.tight { margin:.3rem 0 .6rem; padding-left:1.1rem } ul.tight li { margin:.15rem 0 }
+  .loc { font-size:11px; font-weight:700; color:var(--muted); border:1px solid var(--line); border-radius:4px; padding:0 .3rem; margin-left:.3rem }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:1rem } .card h3 { margin:.1rem 0 .7rem; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted) }
+  .check { display:flex; gap:.5rem; margin:.3rem 0 } .ok { color:var(--green) } .no { color:#b8bfcc }
+  table { width:100%; border-collapse:collapse } td, th { text-align:left; padding:.45rem .35rem; border-bottom:1px solid var(--line); vertical-align:top } th { color:var(--muted); font-weight:600; font-size:12px; white-space:nowrap }
+  .flag { color:var(--red); font-size:12px } .muted { color:var(--muted); font-size:12px }
+  .ch { display:inline-block; padding:0 .4rem; border-radius:4px; color:#fff; font-size:11px; font-weight:700 }
+  .ch.web{background:#6366f1} .ch.whatsapp{background:var(--wa)} .ch.rcs{background:var(--rcs)} .ch.sms{background:var(--sms)} .ch.email{background:var(--email)}
+  .msgs { display:flex; flex-direction:column; gap:.55rem } .msg { max-width:78%; padding:.55rem .75rem; border-radius:10px }
+  .msg.in { background:#f1f3f7; align-self:flex-start } .msg.out { background:#eaf1ff; align-self:flex-end } .msg .why { margin-top:.4rem; font-size:12.5px; color:var(--muted); border-top:1px solid #d9e2f5; padding-top:.3rem }
+  .msg.failed { border:1px dashed var(--red) }
+  textarea { width:100%; min-height:60px; border:1px solid var(--line); border-radius:6px; padding:.5rem }
+  .empty { color:var(--muted); padding:3rem; text-align:center }
+  .tools { position:relative; margin-left:auto } .tools > summary { list-style:none; padding:.4rem .8rem; border:1px solid var(--line); border-radius:6px; cursor:pointer; background:#fff }
+  .tools > summary::-webkit-details-marker { display:none }
+  .tools .pop { position:absolute; right:0; top:calc(100% + 6px); z-index:5; width:min(560px, 92vw); background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 10px 30px rgba(20,30,60,.15); padding:.9rem 1rem }
+  .tools h4 { margin:.2rem 0 .5rem; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted) } .tools form { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center }
+  .tools .danger { border-top:1px dashed var(--line); margin-top:.8rem; padding-top:.7rem } .tools .hint { color:var(--muted); font-size:12.5px; margin:.35rem 0 0 }
+  .who { font-size:12.5px; color:var(--muted); white-space:nowrap } .who b { color:var(--ink); font-size:12.5px }
+  #filters { position:sticky; top:0; z-index:2; background:#fff; padding:.6rem .7rem; border-bottom:1px solid var(--line); display:grid; grid-template-columns:1fr auto; gap:.4rem }
+  #filters input[type=search] { grid-column:1/-1; width:100% } #filters label { font-size:12.5px; color:var(--muted); display:flex; gap:.3rem; align-items:center }
+  .row .meta .id { font-family:ui-monospace,Menlo,monospace; font-size:11.5px }
+  .check { align-items:flex-start } .warn { color:var(--amber) } .check small { display:block; color:var(--muted); font-size:12px } .check small.w { color:var(--amber) }
+  .act label { display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin:.4rem 0 .25rem } .act .help { font-size:12px; color:var(--muted); margin:.2rem 0 .5rem }
+  button:disabled { opacity:.45; cursor:not-allowed }
+  svg.ln { width:1.05em; height:1.05em; vertical-align:-.17em; flex-shrink:0 } .check .ln { margin-top:.2rem }
+  .log { font-size:12.5px; color:var(--muted); padding:.25rem 0; border-top:1px solid var(--line) } .log b { color:var(--ink) }
+</style>
+</head>
+<body>
+<header>
+  <b>ClausePath</b><span class="sub" data-t="desk"></span>
+  <details class="tools" id="tools"><summary><span data-ic="gear"></span> <span data-t="tools"></span></summary><div class="pop">
+    <h4 data-t="t_disrupt"></h4>
+    <form id="evt">
+      <input name="flight" value="XX123" size="6"><input name="date" type="date" value="2026-10-05">
+      <select name="type"><option value="cancelled" data-t="ev_cancelled"></option><option value="delayed" data-t="ev_delayed"></option></select>
+      <input name="reason" value="Typhoon Hagi" size="12">
+      <button class="primary" data-t="disrupt"></button>
+    </form>
+    <p class="hint" data-t="disrupt_hint"></p>
+    <h4 style="margin-top:.8rem" data-t="t_remind"></h4><button type="button" id="remind" data-t="remind"></button><p class="hint" data-t="remind_hint"></p>
+    <div id="bulkq"></div>
+    <h4 style="margin-top:.8rem" data-t="t_kpi"></h4><button type="button" id="kpib" data-t="kpi_open"></button><p class="hint" data-t="kpi_hint"></p>
+    <h4 style="margin-top:.8rem" data-t="t_audit"></h4><button type="button" id="auditb" data-t="audit_open"></button><p class="hint" data-t="audit_hint"></p>
+    <div class="danger"><h4 data-t="t_demo"></h4><button type="button" id="personas" data-t="personas"></button><p class="hint" data-t="demo_hint"></p>
+      <button type="button" id="simphone" data-t="simphone" hidden></button><p class="hint" id="simphone_h" data-t="simphone_hint" hidden></p>
+      <button type="button" id="demoreset" data-t="demoreset" hidden></button><p class="hint" id="demoreset_h" data-t="demoreset_hint" hidden></p></div>
+  </div></details>
+  <span class="who" id="who"></span>
+  <dialog id="imgv"><div class="ivbar"><b id="ivt"></b><span><button type="button" id="ivrot"></button> <button type="button" id="ivx">✕</button></span></div>
+    <div id="ivb"></div><p class="muted" id="ivn"></p></dialog>
+  <dialog id="hod" class="dlg"><h3 data-t="handoff_t"></h3><label><span data-t="handoff_who"></span><select id="hto"></select></label>
+    <label><span data-t="handoff_what"></span><textarea id="hnote" rows="3"></textarea></label>
+    <label><span data-t="handoff_when"></span><input id="hdue" type="datetime-local"></label><p id="hquick" class="canned"></p><label id="hrw" hidden><span id="hrl"></span><textarea id="hreason" rows="2"></textarea></label><p id="herr" class="derr"></p>
+    <p class="btns"><button type="button" id="hno" data-t="cancel"></button> <button type="button" class="primary" id="hgo" data-t="handoff_go"></button></p></dialog>
+  <dialog id="cld" class="dlg"><h3 data-t="call_log"></h3><label><span data-t="call_topic"></span><select id="ctopic"></select></label>
+    <label><span data-t="call_result"></span><select id="cres"></select></label><label id="cbpw" hidden><span data-t="cb_pref"></span> <small id="cbtz" class="muted"></small><select id="cbpref"></select></label><label id="cbw" hidden><span data-t="callback_at"></span><input id="cbat" type="datetime-local"><small id="cbtheir" class="muted" hidden></small></label><p id="cbq" class="canned" hidden></p><p id="cbwarn" class="muted" hidden></p>
+    <label id="cbdw" class="cb" hidden><input type="checkbox" id="cbdone"> <span id="cbdl"></span></label><p id="cerr" class="derr"></p><label><span data-t="call_note"></span><textarea id="cnote" rows="2"></textarea></label>
+    <p class="btns"><button type="button" id="cno" data-t="cancel"></button> <button type="button" class="primary" id="cgo" data-t="save"></button></p></dialog>
+  <dialog id="gd" class="dlg"><h3 id="gdt"></h3><div id="gdb"></div><p id="gderr" class="derr"></p>
+    <p class="btns"><button type="button" id="gdno" data-t="cancel"></button> <button type="button" class="primary" id="gdgo"></button></p></dialog>
+  <dialog id="ud" class="dlg"><p id="udm"></p><textarea id="udi" rows="3"></textarea>
+    <p class="btns"><button type="button" id="udno"></button> <button type="button" class="primary" id="udok"></button></p></dialog>
+  <dialog id="idd"><h3 id="idt"></h3><div id="idl"></div><p class="btns"><button type="button" id="idno"></button> <button type="button" class="primary" id="idgo"></button></p></dialog>
+  <dialog id="bulk"><h3 id="bk_t"></h3><div id="bk_b"></div>
+    <label class="cb"><input type="checkbox" id="bk_ok"> <span id="bk_ack"></span></label>
+    <p class="btns"><button type="button" id="bk_no"></button> <button type="button" class="primary" id="bk_go" disabled></button></p></dialog>
+  <div class="lang"><button type="button" id="l-en" onclick="setLang('en')">EN</button><button type="button" id="l-ko" onclick="setLang('ko')">한국어</button></div>
+  <button type="button" id="logout" data-t="logout" onclick="sessionStorage.removeItem('idt'); location.replace(window.logoutUrl())"></button>
+</header>
+<main><section id="list"><div id="filters">
+  <input type="search" id="q" autocomplete="off">
+  <select id="fs"></select><select id="fo"></select><label><input type="checkbox" id="fc"><span data-t="f_check"></span></label>
+</div><div id="rows"></div></section><section id="detail"></section></main>
+<script>
+// Line icons (Lucide shapes, ISC licence), same set as the traveler chat.
+const SVG = {
+  image:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+  gear:'<path d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.3a2 2 0 0 1-2 0l-.2-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.2.1a2 2 0 0 1 1 1.7v.5a2 2 0 0 1-1 1.7l-.2.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.2-.1a2 2 0 0 1 2 0l.4.3a2 2 0 0 1 1 1.7v.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.3a2 2 0 0 1 2 0l.2.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.2-.1a2 2 0 0 1-1-1.7v-.5a2 2 0 0 1 1-1.7l.2-.1a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.2.1a2 2 0 0 1-2 0l-.4-.3a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  alert:'<path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4M12 17h.01"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>', done:'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>', todo:'<circle cx="12" cy="12" r="10"/>',
+  phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+  clip:'<path d="m21.4 11-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l8-8"/>',
+  mail:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-9 5.7a2 2 0 0 1-2 0L2 7"/>',
+  lock:'<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+};
+const ic = name => `<svg class="ln" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SVG[name]}</svg>`;
+const T = {
+  en: {desk:"Claims desk", disrupt:"Flight disrupted", remind:"Run reminders", select:"Select a claim on the left.",
+       none:"No claims yet. Report a flight disruption above.", received:"received", counted6:"counted", basis:"Clauses", submittedAt:"Submitted", dueAt:"Expected payment", checkBy:"Update due", rawReason:"original", docs:"documents", check:"check", checks:"checks",
+       checklist:"Checklist", coverage:"Assistant's coverage view", documents:"Documents", conversation:"Conversation",
+       action:"Reviewer action", type:"Type", via:"Received via", extracted:"What we read", result:"Checks",
+       nodocs:"Nothing received yet.", notyet:"Not assessed yet.", covered:"Covered", notcovered:"Not covered",
+       guidance:"Guidance only. The insurer decides [CL-5].", note:"Note or request to the traveler",
+       approve:"Decide to pay", request:"Request information", addnote:"Add note", packet:"View claim packet",
+       template:"template", plan:"plan", on:"on", alerted:"Alerted {n} traveler(s).", reminded:"Sent {n} reminder(s).",
+       packetmsg:"Claim packet sent to the insurer's claims inbox", more:"more", ev_cancelled:"cancelled", ev_delayed:"delayed", logout:"Sign out",
+       personas:"Demo personas", ptitle:"Same typhoon, different policies", popen:"Open chat", pplan:"Plan", pbought:"Bought",
+       pperiod:"Cover period", pexpect:"What to expect", pnote:"Each link opens that traveler's chat (no login). Ask the same question in each.",
+       tools:"Operations", due_past:"That deadline is in the past.", current_dec:"Current decision", correct_send:"Send correction for 2nd review", handoff_done:"Done",
+       handoff_t:"Hand off this claim", handoff_who:"To (colleague)", handoff_what:"What should they do?", handoff_when:"By when (KST)", handoff_go:"Hand off",
+       due_h1:"In 1 hour", due_eod:"Today 18:00", due_tmr:"Next business day 10:00", save:"Save",
+       partial_status:"Paid in part", ct_pick:"Choose…", call_topic_need:"Choose what the call was about.", callback_at:"Call back at (KST)", callback_need:"Set when to call back (not in the past).",
+       fo_callbacks:"Call-backs", callback_badge:"Call back", recent_calls:"Recent calls", callback_open:"Call back promised",
+       cb_bank_fix:"Wrong bank account", cb_contact:"Number changed", cb_own_docs:"Own documents",
+       cn_bank_fix:"If the account you entered is wrong, we can send you a new secure link to enter it again after a short identity check. Nothing is paid to the old account once you ask for a correction.",
+       cn_contact:"We can change your phone number or email after an identity check. We first tell the old number or email about the change, and for 24 hours afterwards the bank account cannot be changed, to protect your payment.",
+       cn_own_docs:"A document in someone else's name (for example a friend's receipt) can't be used for your claim. Please send the same kind of document in your own name, as a photo in your chat.",
+       cn_pay_date_appeal:"Your objection is being reviewed by a different reviewer, with a reply by {reply}. For the amount already decided, payment is expected on {date} if nothing needs checking; the insurer confirms the date.",
+       cn_why_less_lines:"Decision: {result}. {lines}Basis: {clauses}. The full reasons and the decision letter are in your chat.",
+       upheld_preview:"[Objection reviewed] A different reviewer looked at your claim again and the decision stays the same. {note} If you still disagree, you can ask Korea's Financial Supervisory Service for dispute mediation: 1332 in Korea, or online at www.fcsc.kr. Questions: {phone}.",
+       sender_unset:"our official number", decided_amount:"Amount decided", requester_note:"Requester's note", ai_differs:"Differs from the assistant's policy view shown to the traveler: check the reason.", takeover_reason:"why it changed hands", handoff_reason:"This claim is owned by {owner}. Why are you handing it on? (kept in the audit trail)", done_who:"Only {who} or an admin can mark this done.", night_paid:"night of stay; paid {paid}", bankfix_stop:"Account to stop: {acct}", bankfix_sms:"The traveler gets this by text/email:", bankfix_msg:"As you asked, please enter your bank account again on the secure page. Your form and ID stay as they are.\n(secure link)", takeover_t:"Take over a claim someone else owns", takeover_why:"Why are you taking it over? (kept in the audit trail; {owner} is told in the history)", cb_pref:"When the traveler prefers to be called", cb_local:"traveler's {w}, their time (UTC{off})", cb_nohours:"no overlap with our hours: set to their window", cb_tz:"(traveler's local time, UTC{off})", cb_their:"their time {t}", cb_pref_off:"Outside the window the traveler chose: {w}", cb_change_req:"The traveler can't make this time: they asked for {w} (their time, UTC{off}). Log a call-back with a new time.", cb_q30_fit:"From 30 min", cb_first:"First time that fits", cb_first_fit:"First time that fits", cb_q60_fit:"From 1 hour", cb_qtmr_fit:"Next business day", topic_guess:"guessed from the claim's status", cb_their_off:"That is {t} for the traveler, outside the window they asked for.", fb_detail:"processed via: {via} · call: {call} · {from} → {to}", fb_document:"document reading", fb_coverage:"policy view", pref_any:"any time", pref_am:"morning (09–12)", pref_pm:"afternoon (13–18)", k_by_event:"by when it happened", appeal_ev:"Evidence sent after the objection ({n}):", taken_by:"taken by {who}", not_in_team:"Only that team can take a claim from its queue.", uphold_keep:"Keep the decision…", uphold_change:"Change the decision…", uphold_lines:"Lines in dispute", uphold_claim:"What the traveler says", uphold_ph:"[what you checked]", team_reviewers:"Reviewers' queue", team_agents:"Contact-centre queue", cb_done:"This call kept the call-back promise ({when})", cb_q30:"In 30 min", cb_q60:"In 1 hour", cb_qtmr:"Next business day 10:00", cb_offhours:"Outside our business hours (Mon–Fri 09:00–18:00 KST): check someone can make this call.", traveler_req:"traveler asked for a call", uphold_tpl:"Lines reviewed again: {lines}. What I checked: ", uphold_fill:"Say what you checked (e.g. the receipt lists the items as minibar).", bankfix_t:"Ask for the bank account again", appeal_line:"Line in question", bad_phone:"Check the phone number (digits, + and - only).", bad_email:"Check the email address.", need_contact:"Enter a new phone number or email.", cn_smishing_ns:"Yes, that text is from us. If in doubt, call our number {phone} and we confirm it. The link opens your claim chat; we never ask for bank details by text.", dlg_contact_t:"Change contact details", dlg_phone_appeal_t:"Objection taken on the phone", dlg_uphold_t:"Keep the decision: reply to the objection",
+       dlg_preview:"What the traveler gets", too_short:"Write at least {n} characters.", send:"Send", dlg_return_t:"Return the decision", dlg_reason_t:"Reason",
+       k_blocked:"Wording blocked before sending", k_blocked_sub:"staff {s} · AI {a}", k_blocked_list:"Blocked attempts", k_period:"Period", k_basis:"claims opened {from} – {to} ({n} days)", k_now:"Backlog now", k_now_sub:"everything still open, whatever the period", k_flow:"Period figures", k_ops:"Operating signals", k_blocked_by:"rule list {r} · guardrail {g}", k_regex_only:"Checked by the rule list alone", k_regex_only_sub:"guardrail unreachable; see the audit log (guardrail_skipped) to re-check", k_where:"Where data is processed", area_us:"US regions", area_eu:"EU regions", area_apac:"Asia-Pacific regions", area_global:"any region", area_jp:"Japan", area_au:"Australia", area_ca:"Canada", k_fb:"fallback", k_fb_off:"off", k_ops_sub:"by when it happened, in the period", k_fallbacks:"Processed outside the home region", k_fallbacks_sub:"AI routed to another region (off unless enabled); each claim keeps where it was processed", k_callbacks:"Open call-backs", k_inperiod:"in the period", k_appeals_total:"Objections (claims opened in the period)", k_7:"7 days", k_30:"30 days", k_export:"Export CSV", k_peak:"peak {n} on {d}",
+       w_ai_reply:"AI reply", w_message:"message", w_decision:"decision note", w_request_info:"information request", w_appeal_reply:"objection reply",
+       call_log:"Log a call", call_topic:"What was the call about?", call_result:"Outcome", call_note:"Note (internal)",
+       ct_smishing:"Is this text real?", ct_pay_date:"When do I get paid?", ct_why_less:"Why less?", ct_objection:"Objection", ct_bank:"Bank account", ct_contact:"Contact change", ct_documents:"Documents", ct_other:"Other",
+       cr_answered:"Answered", cr_handed_off:"Handed off", cr_call_back:"Call back",
+       cb_smishing:"Is this text real?", cb_pay_date:"Payment date", cb_why_less:"Why less", cb_objection:"How to object", cb_documents:"What's missing",
+       cn_smishing:"Yes, that text is from us. It came from {sender}; our number is {phone}. The link opens your claim chat; we never ask for bank details by text.",
+       cn_pay_date:"If nothing needs checking, payment is expected on {date}. The insurer confirms the date.", cn_pay_none:"The insurer will confirm whether and when it pays after checking your documents.",
+       cn_why_less:"The reason and the receipt lines are in the decision message in your chat, under \"Why less\". You can also open the decision letter there.",
+       cn_objection:"In your chat, open Details and tap \"Object to this decision\", or tell me now and I will record it. A different reviewer looks again.",
+       cn_documents:"Still needed: {items}. You can send photos in your chat.", k_few:"small sample (n={n}); don't report as a rate yet", k_appeals:"Open objections", k_overdue:"overdue", k_total:"total",
+       k_pending:"Waiting for a 2nd reviewer", k_avgwait:"avg wait", k_corrections:"Corrected decisions", k_trend:"Last {n} days",
+       k_s_created:"claims", k_s_submitted:"submitted", k_s_decided:"decided", appeal_t_phone:"Objection taken on the phone", appeal_overdue:"Objection past reply-by date", appeal_uphold:"Keep the decision and reply…",
+       appeal_uphold_why:"Why does the decision stay? (sent to the traveler with the FSS route; at least 10 characters)", appeal_not_first:"You made or confirmed the first decision: another reviewer handles this objection.",
+       appeal_done_withdrawn:"Objection withdrawn by the traveler", appeal_done_upheld:"Objection answered: decision kept", appeal_done_corrected:"Objection answered: decision corrected", appeal_phone:"Record objection from call",
+       appeal_phone_text:"What does the traveler disagree with? (their words)", fo_appeals:"Objections", appeal_t:"Objection from the traveler", appeal_reply_by:"Reply by", appeal_hint:"A reviewer who did not make the first decision should review it; use 'Correct the decision' if it changes.", banned:"\"{p}\" promises an outcome. Say what the policy covers and that the insurer decides, e.g. \"the policy covers hotel costs while you wait; the insurer decides the amount\".", recent_contact_change:"The contact details changed less than 24 hours ago. Bank details cannot be changed yet (protects against payout hijacking).",
+       identity_checks_needed:"Not enough identity checks for this action.", contact_warn:"The old phone/email will be told about this change, and bank details cannot be changed for 24 hours. Continue?", correct:"Correct the decision…", correct_deny:"Correct to a denial…", correct_help:"A final decision changes only through a correction: reason, second reviewer, the traveler is told.",
+       correct_why:"Why correct the decision? (kept in the audit trail)", over_why:"This pays more than the receipts and limits support. Why? (audit trail; a second reviewer must confirm)",
+       pending_exists:"A decision is already waiting for a second reviewer. Return it first.", already_decided:"This claim already has a final decision. Use a correction.",
+       pending_changed:"The pending decision changed while you were looking. Check it again.", why_over_estimate:"more than the estimate", why_not_covered:"plan has no cover", why_correction:"correction", memo_t:"Internal memo and history", from_no:"from", owner:"Owner", no_owner:"No owner yet", take:"Take it", handoff:"Hand off…", handed_from:"Handed over by", by_when:"by", handed:"handed over",
+       smsg:"Message to the traveler (contact centre)", smsg_ph:"e.g. Yes, this text is from us. Please send the boarding pass in the chat.",
+       bankfix_cancel:"Undo bank re-entry", contact_change:"Change phone / email",
+       idcheck_t:"How did you confirm the caller is the traveler? (at least {n})", id_dob:"Date of birth", id_policy:"Policy number", id_booking:"Booking reference",
+       id_callback:"Called back on the number on file", id_other:"Other (write)", id_ok:"Confirmed",
+       handoff_to:"Hand off to (email):", handoff_note:"What should they do?", handoff_due:"By when? (KST, YYYY-MM-DD HH:MM; empty = none)",
+       new_phone:"New phone (empty = keep):", new_email:"New email (empty = keep):",
+       fo_all:"Everyone's", fo_mine:"Mine", fo_handed:"Handed to me", fo_none:"No owner", adjusted:"After your adjustments", requested_by:"requested by", not_submitted:"The traveler has not submitted this claim yet. Usually ask for the documents instead. Why decide now? (kept in the audit trail)", adj_excluded_item:"item not covered", adj_airline_paid:"paid by the airline", adj_other_insurance:"paid by another insurance", adj_over_reasonable:"above a reasonable cost", adj_other:"other (say why)", dup:"Other compensation", declared:"declared", dup_ins_yes:"another insurance: YES", dup_ins_no:"no other insurance", dup_air_yes:"airline compensation: YES", dup_air_no:"no airline compensation", download:"download", original:"Original photo", compare:"Compare with the other claim", first_upload:"uploaded first", rotate:"Rotate",
+       iv_note:"Click a photo for full size. Each view is recorded in the audit log.", t_kpi:"Operations KPIs", kpi_open:"Open KPIs", kpi_hint:"Throughput per disruption, AI quality, SMS cost, wording alerts.",
+       k_cited:"Replies with a source", k_changed:"Paid less than the estimate, or denied", k_retake:"Photos needing a retake", k_banned:"Found after sending (missed by the check)",
+       k_sms:"SMS sent", k_parts:"parts", k_support:"Contact-centre actions", k_errors:"AI errors", k_today:"today", k_of:"of {n}", k_review:"read these", k_none:"none",
+       k_events:"By disruption", k_event:"Flight / date", k_claims:"Claims", k_opened:"Chat opened", k_submitted:"Submitted", k_decided:"Full / part / denied",
+       k_open:"With open checks", k_tsub:"Avg hours to submit", k_tdec:"Avg hours to decide",
+       k_note:"Computed from stored claims and messages. 'Paid less than the estimate, or denied' compares the decision with the automatic estimate; it does not mean the AI was overruled. 'Wording blocked' counts attempts stopped before sending (staff) and sentences removed from AI replies.", demo_user:"Demo user (local only)", pending_badge:"awaiting 2nd approval", pending_t:"Waiting for a second reviewer", pending_why:"needs a second reviewer because",
+       why_deny:"denial", deny_of:"the whole estimated claim of {x} refused", deny_none:"no document counted yet, estimated claim $0.00", basis_check:"Ask for documents instead of denying. Documents still need checking ({open}); those are asked for again under CL-1 (claim documents), not a ground for {clauses}.", return_to_info:"Return and ask for documents", decision_reason:"requester's reason", basis_flag:"basis does not fit open document checks", basis_override:"confirmed past the basis warning", siu_badge:"SIU hold", siu_linked_badge:"Linked to an SIU review", siu_reason:"why referred", siu_only_deny:"still held; only a denial may go ahead, through a second reviewer", siu_handoff_to:"Hand off to", siu_pay_script:"There is one more check before payment. We will contact you as soon as it is done; I can't give a payment date yet.", siu_release_pay:"Release the held payment", siu_release_q:"Why may this payment go ahead? (kept in the audit trail)", cb_change_badge:"Call-back time change asked", cb_change_day:"The time set is already in that window: they probably need another day; ask when you call.", decision_free_text:"“{p}” states the decision. Free text may not; use the “Why less” or “Payment date” reply, which is filled from the claim.", siu_outcome:"SIU's conclusion", siu_o_no_fraud:"No fraud found", siu_o_fraud_confirmed:"Fraud confirmed (decide accordingly)", siu_o_referred_to_police:"Referred to the police", siu_outcome_need:"Choose SIU's conclusion.", siu_kind:"What is suspected", siu_k_document_reuse:"Documents reused from another claim", siu_k_forged_document:"Forged or altered document", siu_k_duplicate_claim:"Same costs claimed twice", siu_kind_need:"Choose what is suspected.", siu_not_self:"An admin (for the SIU team), not the person who referred it, records SIU's conclusion.", siu_hold_err:"This claim is held for SIU review: nothing can be sent to the traveler and no decision made until the hold ends.", siu_script_t:"Held for review. If the traveler calls, say only this:", siu_script:"The documents you sent are being checked by the team responsible. We will contact you as soon as that is done; I can't give a payment date yet.", siu_dont:"Do not mention an investigation, fraud, other claims or other people's documents; do not ask for documents again or promise a date. Say only that any document is answered once the team has checked it. If the number changed, note the new one in the call log (applied after the check). Log the call and hand it to the reviewer below.", siu_linked_dont:"Do not mention the other claim or any review to this traveler.", siu_hold_pay:"Hold this claim's payment too", siu_hold_pay_q:"Why hold this payment? (kept in the audit trail)", siu_pay_held:"Payment held", siu_t:"Held for the special investigation unit", siu_linked:"linked claims", siu_quiet:"Nothing is sent to the traveler and no decision is made while the claim is held. The chat assistant keeps answering neutrally.", siu_clear:"End the hold…", siu_linked_t:"Documents of this claim were also used in {c}, which is held for SIU review", siu_hint:"Documents first used in another claim: this may be fraud rather than a mistake. Asking the traveler tells them it was noticed.", siu_refer:"Refer to SIU (hold)…", siu_q:"Why refer this claim to the special investigation unit? (kept in the audit trail; the traveler is not told)", siu_clear_q:"What did SIU conclude? (kept in the audit trail)", basis_override_q:"The basis does not fit the open document checks. Why confirm the denial anyway? (kept in the audit trail)", return_to_info_note:"Basis does not fit open document checks: ask for the documents (CL-1) instead of denying.", ask_docs_tpl:"The documents you sent show another person's name. Please send the airline letter, boarding pass and receipts in your own name in this chat.", deny_checks:"{n} document(s) still need checking. A name that does not match or an unreadable photo is usually a reason to ask for documents (추가 정보 요청), not to deny. Why deny now? (kept in the audit trail)", why_partial:"partial payment", why_amount:"amount over the limit", why_open_checks:"open checks", confirm_dec:"Confirm and send", return_dec:"Return",
+       not_self:"Another reviewer must confirm your own decision.", return_why:"Why are you returning it? (goes to the first reviewer)",
+       confirm_dec_q:"Confirm? The traveler will be told now.", sent_for_second:"Saved. A second reviewer must confirm before the traveler is told.",
+       bulk_waiting:"{n} recipients is over the bulk limit: the send waits for a second admin (Operations menu).", bulkq_t:"Bulk sends awaiting approval", bulk_send:"Approve and send", t_audit:"Audit log", audit_open:"Open audit log", audit_hint:"Who opened, changed or sent what, per day. Admins only.",
+       audit_q:"Search user, claim, detail", audit_all:"All actions", audit_at:"Time", audit_who:"User", audit_what:"Action", audit_target:"Target",
+       audit_detail:"Detail", audit_none:"Nothing recorded on this day.", audit_note:"Times are this computer's. Entries cannot be edited here; the same records go to a write-once store (S3 Object Lock). Viewing and exporting the log is logged too.", audit_sent:"count", doc:"document", bk_count:"{n} recipient(s)", bk_skipped:"{n} skipped (plan has no delay cover)",
+       bk_cost:"SMS parts {parts} · estimated cost ${usd} (about ₩{krw})", bk_second:"Over the bulk limit: a second admin must approve this send.",
+       bk_ack:"I checked the recipients and the text; {n} real message(s) will be sent.", bk_go:"Send to {n}", cancel:"Cancel", t_disrupt:"Report a flight disruption", t_remind:"Reminders", t_demo:"Demo data",
+       disrupt_hint:"Texts every traveler booked on this flight and date (real SMS).", remind_hint:"Texts travelers whose documents are still missing (real SMS).",
+       demo_hint:"Creates seven fictional travelers for the demo. No messages are sent.",
+       disrupt_hint_sim:"Texts every traveler booked on this flight and date (demo: to the phone simulator).", remind_hint_sim:"Texts travelers whose documents are still missing (demo: to the phone simulator).",
+       bk_ack_sim:"I checked the recipients and the text; {n} message(s) will go to the phone simulator.",
+       attached:"{n} attachment(s)", confirm_ok:"OK", demoreset:"Reset demo data", demoreset_hint:"Removes the demo travelers and their claims, messages and photos. The audit log is kept.",
+       demoreset_q:"Remove all demo travelers and their claims? The audit log is kept.", demoreset_done:"Removed: {t} travelers, {c} claims, {d} photos, {e} events.",
+       simphone:"Phone simulator", simphone_hint:"Opens a phone that receives the SMS/RCS the router sends and texts back. Carrier delivery is simulated.",
+       bk_sim:"Demo: SMS and RCS go to the phone simulator, not a carrier.",
+       confirm_disrupt:"Text every traveler on {f} ({d}) about this {t}?\nReal SMS will be sent.", confirm_remind:"Send reminders to travelers with missing documents now? Real SMS will be sent.",
+       search:"Search name, phone last 4, claim ID, flight", f_all:"All statuses", f_check:"Needs a check only",
+       msg:"Message to the traveler", msg_help:"Sent by SMS/chat with a payment decision, an information request, or on its own (Send message only).",
+       memo:"Internal note", memo_help:"Only staff see this. Never sent to the traveler.", savememo:"Save note",
+       confirm_send:"Send this to {name}?\n\n{text}", empty_msg:"(no message)", needmsg:"Write what you need from the traveler first.",
+       noperm:"Your role can't do this.", role:{admins:"Admin",reviewers:"Reviewer",agents:"Contact centre"},
+       via_letter:"From the airline letter (booking ref and scheduled time)", from:"Evidence", pending:"{n} photo(s) waiting for a retake",
+       acts:{callback_change_requested:"Traveler asked for another call-back time", siu_referred:"Referred to SIU (hold)", callback_cancelled:"Traveler cancelled the call request", appeal_withdrawn:"Objection withdrawn", callback_requested:"Traveler asked for a call back", assign:"Owner set", handoff:"Handed off", bank_correction_cancel:"Bank re-entry undone", contact_update:"Contact changed", decision_requested:"Decision requested (awaiting 2nd)",decision_returned:"Decision returned",deny:"Denied",approve:"Payment decided",request_info:"Information requested",note:"Internal note",message:"Message sent",resend_link:"Chat link resent",bank_correction:"Bank account re-entry requested"},
+       support:"Contact centre", payamt:"Amount to pay (USD)", amount_est:"estimate", partial_hint:"Less than the estimate: partial payment — pick the clauses and write why in the message.",
+       basis_pick:"Clauses for a partial payment or denial", deny:"Deny", need_basis:"A partial payment or denial needs at least one clause and a message to the traveler saying why.",
+       dec_full:"Paid in full", dec_partial:"Paid in part", dec_deny:"Denied", sendmsg:"Send message only", resend:"Resend chat link", bankfix:"Ask for the bank account again",
+       idcheck:"How did you confirm the caller is the traveler? (e.g. date of birth + policy number; kept in the audit trail)",
+       bankfix_note:"The current account stops being used until the traveler enters a new one on the secure page. Continue?",
+       bank_pending:"Waiting for a new bank account", was:"was", identity:"identity check",
+       worksheet:"Amount worksheet", date:"Date", merchant:"Merchant", amount:"Amount", counted:"Counts", daytotal:"day total",
+       estimate:"Estimate", limits:"limits", day:"day", trip:"trip", left:"trip limit left", nocover:"This plan has no travel delay cover [PLAN-1].",
+       fxnote:"Demo exchange rate; production uses the rate on the expense date [TD-5]. The reviewer decides the amount.",
+       payto:"Pay to", reviewflag:"review", needscheck:"Needs a check", retakewait:"retake pending", approve_reason:"{n} open check(s). Write why you decide to pay anyway (kept in the audit trail):", approved_despite:"Decided despite open checks, because"},
+  ko: {desk:"청구 심사 데스크", disrupt:"결항·지연 발생", remind:"리마인더 보내기", select:"왼쪽에서 청구를 선택하세요.",
+       none:"아직 청구가 없습니다. 위에서 결항·지연을 등록해 보세요.", docs:"서류", received:"받음", counted6:"인정", basis:"근거 조항", submittedAt:"제출", dueAt:"지급 예정", checkBy:"확인 결과 안내", rawReason:"원문",
+       check:"확인 필요", checks:"확인 필요",
+       checklist:"체크리스트", coverage:"보장 판단 (안내용)", documents:"받은 서류", conversation:"대화",
+       action:"심사자 조치", type:"종류", via:"받은 채널", extracted:"읽은 내용", result:"점검 결과",
+       nodocs:"아직 받은 서류가 없습니다.", notyet:"아직 확인하지 않았습니다.", covered:"보상 대상", notcovered:"보상 제외",
+       guidance:"안내용 판단입니다. 최종 결정은 보험사가 합니다 [CL-5].", note:"여행자에게 보낼 메모나 요청",
+       approve:"지급 결정", request:"추가 정보 요청", addnote:"메모 추가", packet:"청구 묶음 보기",
+       template:"템플릿", plan:"플랜", on:"", alerted:"{n}명에게 알림을 보냈습니다.", reminded:"리마인더 {n}건을 보냈습니다.",
+       packetmsg:"보험사 청구 접수함으로 청구 묶음을 보냈습니다", more:"더 보기", ev_cancelled:"결항", ev_delayed:"지연", logout:"로그아웃",
+       personas:"데모 페르소나", ptitle:"같은 태풍, 다른 가입 조건", popen:"대화 열기", pplan:"플랜", pbought:"가입일",
+       pperiod:"보험기간", pexpect:"기대 결과", pnote:"링크마다 해당 여행자의 대화창이 열려요(로그인 없음). 같은 질문을 각각 해 보세요.",
+       tools:"운영 도구", due_past:"기한이 이미 지난 시각입니다.", current_dec:"현재 결정", correct_send:"정정안 2차 결재 요청", handoff_done:"처리 완료",
+       handoff_t:"이 건 인계하기", handoff_who:"받는 사람(동료)", handoff_what:"무엇을 해야 하나요?", handoff_when:"기한(KST)", handoff_go:"인계",
+       due_h1:"1시간 후", due_eod:"오늘 18:00", due_tmr:"다음 영업일 10:00", save:"저장",
+       partial_status:"일부 지급", ct_pick:"선택하세요", call_topic_need:"문의 내용을 골라 주세요.", callback_at:"다시 걸 시각 (KST)", callback_need:"다시 걸 시각을 정해 주세요(지난 시각은 안 됩니다).",
+       fo_callbacks:"콜백 예정", callback_badge:"콜백", recent_calls:"최근 통화", callback_open:"콜백 약속",
+       cb_bank_fix:"계좌 잘못 넣음", cb_contact:"번호 변경", cb_own_docs:"본인 서류",
+       cn_bank_fix:"계좌를 잘못 넣으셨으면 본인 확인 뒤 계좌를 다시 넣을 수 있는 새 보안 링크를 보내 드려요. 정정을 요청하시면 이전 계좌로는 지급하지 않아요.",
+       cn_contact:"본인 확인 뒤 전화번호나 이메일을 바꿔 드릴 수 있어요. 바꾸기 전에 기존 번호·이메일로 변경 사실을 먼저 알려 드리고, 보험금 보호를 위해 바꾼 뒤 24시간 동안은 계좌를 바꿀 수 없어요.",
+       cn_own_docs:"다른 분 이름으로 된 서류(예: 친구 영수증)는 이 청구에 쓸 수 없어요. 같은 종류의 서류를 본인 이름으로 대화창에 사진으로 보내 주세요.",
+       cn_pay_date_appeal:"이의 신청은 처음 결정한 사람이 아닌 다른 심사자가 검토해 {reply}까지 알려 드려요. 이미 결정된 금액은 추가 확인이 없으면 {date} 지급 예정이에요(보험사 심사에 따라 달라질 수 있어요).",
+       cn_why_less_lines:"결정: {result}. {lines}근거: {clauses}. 자세한 이유와 결정 통지서는 대화창에 있어요.",
+       upheld_preview:"[이의 검토 결과] 처음 결정한 사람이 아닌 다른 심사자가 다시 검토했지만 결정은 그대로예요. {note} 그래도 동의하기 어려우면 금융감독원 분쟁조정(국번 없이 1332, www.fcsc.kr)을 신청할 수 있어요. 문의 {phone}",
+       sender_unset:"보험사 공식 번호", decided_amount:"심사 인정액", requester_note:"요청자 소견", ai_differs:"여행자에게 안내된 약관 판단과 다른 결정이에요. 사유를 확인해 주세요.", takeover_reason:"담당 변경 사유", handoff_reason:"{owner}가 맡은 건입니다. 인계하는 이유를 적어 주세요(감사 기록에 남습니다):", done_who:"{who} 또는 관리자만 처리 완료할 수 있어요.", night_paid:"투숙일 기준, 결제 {paid}", bankfix_stop:"멈출 계좌: {acct}", bankfix_sms:"고객에게 문자·이메일로 이렇게 갑니다:", bankfix_msg:"요청하신 대로 보안 페이지에서 입금 계좌만 다시 입력해 주세요. 청구서와 신분증은 그대로 유지돼요.\n(보안 링크)", takeover_t:"다른 사람이 맡은 건 가져오기", takeover_why:"가져오는 이유를 적어 주세요(감사 기록에 남고, {owner}에게 이력으로 보입니다):", cb_pref:"고객이 원하는 통화 시간대", cb_local:"고객 현지 {w} (UTC{off})", cb_nohours:"근무 시간과 겹치지 않아 고객 시간대에 맞춤", cb_tz:"(고객 현지 시간 기준, UTC{off})", cb_their:"고객 현지 {t}", cb_pref_off:"고객이 고른 시간대 밖이에요: {w}", cb_change_req:"고객이 이 시간이 어렵다고 했어요: {w}(고객 현지, UTC{off})로 요청. 통화 기록에서 새 콜백 시각을 정해 주세요.", cb_q30_fit:"30분 뒤부터", cb_first:"가능한 첫 시각", cb_first_fit:"가능한 첫 시각", cb_q60_fit:"1시간 뒤부터", cb_qtmr_fit:"다음 영업일", topic_guess:"청구 상태로 추정", cb_their_off:"고객 현지 {t}이에요. 고객이 고른 시간대 밖이에요.", fb_detail:"처리 위치: {via} · 호출: {call} · {from} → {to}", fb_document:"서류 판독", fb_coverage:"보장 판단", pref_any:"아무 때나", pref_am:"오전(09–12시)", pref_pm:"오후(13–18시)", k_by_event:"발생일 기준", appeal_ev:"이의 후 받은 증빙 {n}건:", taken_by:"{who}가 맡음", not_in_team:"해당 팀 대기열의 건은 그 팀만 맡을 수 있어요.", uphold_keep:"검토 결과: 원결정 유지…", uphold_change:"검토 결과: 결정 바꾸기…", uphold_lines:"이의 대상 줄", uphold_claim:"고객 주장", uphold_ph:"[확인한 내용]", team_reviewers:"심사팀 대기열", team_agents:"상담팀 대기열", cb_done:"이 통화로 콜백 약속({when})을 처리했어요", cb_q30:"30분 후", cb_q60:"1시간 후", cb_qtmr:"다음 영업일 10:00", cb_offhours:"저희 근무 시간(평일 09–18시 KST) 밖이에요. 그 시각에 걸 사람이 있는지 확인해 주세요.", traveler_req:"여행자 전화 요청", uphold_tpl:"다시 검토한 줄: {lines}. 확인한 내용: ", uphold_fill:"확인한 내용을 10자 이상 적어 주세요(예: 영수증 품목에 미니바 2건이 적혀 있음).", bankfix_t:"계좌 정정 요청", appeal_line:"이의 대상 감액", bad_phone:"전화번호 형식을 확인해 주세요(숫자, +, - 만).", bad_email:"이메일 주소를 확인해 주세요.", need_contact:"새 전화번호나 이메일을 적어 주세요.", cn_smishing_ns:"네, 저희가 보낸 문자가 맞습니다. 의심되시면 대표번호 {phone}로 전화하시면 확인해 드려요. 링크는 청구 대화창이며, 계좌 정보는 문자로 묻지 않습니다.", dlg_contact_t:"연락처 변경", dlg_phone_appeal_t:"전화 이의 접수", dlg_uphold_t:"원결정 유지 회신",
+       dlg_preview:"여행자가 받는 안내", too_short:"{n}자 이상 적어 주세요.", send:"보내기", dlg_return_t:"결정 반려", dlg_reason_t:"사유",
+       k_blocked:"발송 전 차단된 표현", k_blocked_sub:"직원 {s} · AI {a}", k_blocked_list:"차단된 시도", k_period:"기간", k_basis:"{from} ~ {to}에 접수된 청구 기준({n}일)", k_now:"현재 잔량", k_now_sub:"기간과 상관없이 지금 남은 일 전체", k_flow:"기간 지표", k_ops:"운영 신호", k_blocked_by:"금지 목록 {r} · 가드레일 {g}", k_regex_only:"금지 목록만으로 검사된 메시지", k_regex_only_sub:"가드레일 장애 때 나간 메시지. 감사 기록(가드레일 생략)에서 다시 확인", k_where:"데이터 처리 위치", area_us:"미국 리전", area_eu:"유럽 리전", area_apac:"아시아·태평양 리전", area_global:"전 세계 리전", area_jp:"일본", area_au:"호주", area_ca:"캐나다", k_fb:"우회", k_fb_off:"꺼짐", k_ops_sub:"기간 내 발생일 기준", k_fallbacks:"기본 리전 밖 처리", k_fallbacks_sub:"AI를 다른 리전으로 우회한 건(기본 꺼짐), 청구마다 처리 위치 기록", k_callbacks:"열린 콜백", k_inperiod:"기간 내", k_appeals_total:"이의 신청(기간 내 접수 건)", k_7:"7일", k_30:"30일", k_export:"CSV 내보내기", k_peak:"최대 {n} ({d})",
+       w_ai_reply:"AI 답변", w_message:"안내", w_decision:"결정 메모", w_request_info:"추가 정보 요청", w_appeal_reply:"이의 회신",
+       call_log:"통화 기록", call_topic:"문의 내용", call_result:"처리 결과", call_note:"메모(내부)",
+       ct_smishing:"문자 사기 아니에요?", ct_pay_date:"언제 들어와요?", ct_why_less:"왜 덜 줬어요?", ct_objection:"이의 신청", ct_bank:"계좌", ct_contact:"연락처 변경", ct_documents:"서류", ct_other:"기타",
+       cr_answered:"안내 완료", cr_handed_off:"이관", cr_call_back:"콜백 예정",
+       cb_smishing:"공식 문자 확인", cb_pay_date:"지급 예정일", cb_why_less:"감액 이유", cb_objection:"이의 신청 방법", cb_documents:"부족 서류",
+       cn_smishing:"네, 저희가 보낸 문자가 맞습니다. 발신번호는 {sender}, 대표번호는 {phone}입니다. 링크는 청구 대화창이며, 계좌 정보는 문자로 묻지 않습니다.",
+       cn_pay_date:"추가 확인이 없으면 {date} 지급 예정이에요. 보험사 심사에 따라 달라질 수 있어요.", cn_pay_none:"보험사가 서류를 확인한 뒤 지급 여부와 일정을 알려 드려요.",
+       cn_why_less:"줄어든 이유와 영수증별 내역은 대화창의 결정 메시지 '줄어든 이유'에 있어요. 결정 통지서도 그곳에서 열 수 있어요.",
+       cn_objection:"대화창에서 '자세히' → '이의 신청하기'를 누르시거나, 지금 말씀해 주시면 제가 대신 접수할게요. 처음 결정한 사람이 아닌 다른 심사자가 다시 검토해요.",
+       cn_documents:"아직 필요한 서류: {items}. 대화창에 사진으로 보내 주세요.", k_few:"표본 적음(n={n}): 아직 비율로 보고하지 마세요", k_appeals:"진행 중 이의 신청", k_overdue:"기한 초과", k_total:"누적",
+       k_pending:"2차 결재 대기", k_avgwait:"평균 대기", k_corrections:"정정된 결정", k_trend:"최근 {n}일",
+       k_s_created:"청구", k_s_submitted:"제출", k_s_decided:"결정", appeal_t_phone:"전화로 받은 이의 신청", appeal_overdue:"이의 답변 기한 초과", appeal_uphold:"원결정 유지로 회신…",
+       appeal_uphold_why:"결정을 유지하는 이유를 적어 주세요(여행자에게 금감원 안내와 함께 갑니다, 10자 이상):", appeal_not_first:"처음 결정했거나 확인한 심사자입니다. 이 이의는 다른 심사자가 처리해야 합니다.",
+       appeal_done_withdrawn:"고객이 이의 신청을 철회함", appeal_done_upheld:"이의 회신 완료: 원결정 유지", appeal_done_corrected:"이의 회신 완료: 결정 정정", appeal_phone:"전화로 받은 이의 접수",
+       appeal_phone_text:"고객이 무엇에 동의하지 않나요? (고객 말 그대로)", fo_appeals:"이의 신청 건", appeal_t:"고객 이의 신청", appeal_reply_by:"답변 기한", appeal_hint:"처음 결정한 사람이 아닌 다른 심사자가 검토하고, 바뀌면 '결정 정정'을 쓰세요.", banned:"'{p}'는 결과를 약속하는 표현이에요. '약관상 보상하는 비용에 해당하고, 금액은 보험사가 정해요'처럼 바꿔 주세요.", recent_contact_change:"연락처가 바뀐 지 24시간이 지나지 않았습니다. 보험금 가로채기를 막기 위해 아직 계좌를 바꿀 수 없습니다.",
+       identity_checks_needed:"이 조치에 필요한 본인 확인 항목이 부족합니다.", contact_warn:"기존 번호·이메일로 변경 알림이 가고, 24시간 동안 계좌를 바꿀 수 없습니다. 계속할까요?", correct:"결정 정정…", correct_deny:"부지급으로 정정…", correct_help:"확정된 결정은 정정으로만 바꿀 수 있어요(사유, 2차 결재, 여행자 재안내).",
+       correct_why:"결정을 정정하는 이유를 적어 주세요(감사 기록에 남습니다):", over_why:"영수증과 한도로 계산한 예상 청구액보다 많이 지급합니다. 이유를 적어 주세요(감사 기록, 2차 결재 필요):",
+       pending_exists:"이미 2차 결재를 기다리는 결정이 있습니다. 먼저 반려해 주세요.", already_decided:"이미 확정된 결정이 있습니다. '결정 정정'을 쓰세요.",
+       pending_changed:"보는 동안 대기 중인 결정이 바뀌었습니다. 다시 확인해 주세요.", why_over_estimate:"예상 청구액 초과 지급", why_not_covered:"보장 없는 플랜", why_correction:"결정 정정", memo_t:"내부 메모와 조치 이력", from_no:"발신", owner:"담당", no_owner:"담당자 없음", take:"내가 맡기", handoff:"인계…", handed_from:"인계", by_when:"기한", handed:"인계",
+       smsg:"고객에게 보낼 안내 (상담원)", smsg_ph:"예: 네, 저희가 보낸 문자가 맞습니다. 탑승권은 대화창에 사진으로 보내 주세요.",
+       bankfix_cancel:"계좌 정정 취소", contact_change:"연락처 변경",
+       idcheck_t:"고객 본인 확인을 어떻게 했나요? ({n}개 이상)", id_dob:"생년월일", id_policy:"증권번호", id_booking:"예약번호",
+       id_callback:"등록된 번호로 다시 걸어 확인", id_other:"기타(직접 입력)", id_ok:"확인 완료",
+       handoff_to:"누구에게 인계할까요? (이메일)", handoff_note:"무엇을 해야 하나요?", handoff_due:"언제까지? (KST, YYYY-MM-DD HH:MM, 비우면 기한 없음)",
+       new_phone:"새 전화번호 (비우면 그대로):", new_email:"새 이메일 (비우면 그대로):",
+       fo_all:"모든 담당", fo_mine:"내 건", fo_handed:"인계 받은 건", fo_none:"담당자 없음", adjusted:"조정 후 지급액", requested_by:"요청", not_submitted:"여행자가 아직 청구를 제출하지 않았습니다. 보통은 추가 정보 요청이 맞습니다. 지금 결정하는 이유를 적어 주세요(감사 기록에 남습니다):", adj_excluded_item:"보상하지 않는 항목", adj_airline_paid:"항공사 부담분", adj_other_insurance:"다른 보험 지급분", adj_over_reasonable:"합리적 비용 초과", adj_other:"기타(사유 기재)", dup:"중복 보상", declared:"고객 고지", dup_ins_yes:"다른 보험 청구 있음", dup_ins_no:"다른 보험 없음", dup_air_yes:"항공사 보상 받음", dup_air_no:"항공사 보상 없음", download:"내려받기", original:"원본 사진", compare:"다른 청구 원본과 비교", first_upload:"먼저 올라온 사진", rotate:"회전",
+       iv_note:"사진을 누르면 원래 크기로 봅니다. 열람할 때마다 감사 기록에 남습니다.", t_kpi:"운영 지표", kpi_open:"운영 지표 보기", kpi_hint:"사고별 처리량, AI 품질, 문자 비용, 금지 표현 감지.",
+       k_cited:"근거를 단 답변", k_changed:"예상 청구액 대비 감액·부지급 비율", k_retake:"재촬영이 필요했던 사진", k_banned:"발송 후 검출(차단 누락)",
+       k_sms:"문자 발송", k_parts:"분할", k_support:"상담 조치", k_errors:"AI 응답 오류", k_today:"오늘", k_of:"{n}건 중", k_review:"확인 필요", k_none:"없음",
+       k_events:"사고별", k_event:"편명 / 날짜", k_claims:"청구", k_opened:"대화 시작", k_submitted:"제출", k_decided:"전액 / 일부 / 부지급",
+       k_open:"미해결 확인", k_tsub:"제출까지 평균(시간)", k_tdec:"결정까지 평균(시간)",
+       k_note:"저장된 청구와 메시지로 계산합니다. '예상 청구액 대비 감액·부지급 비율'은 결정을 서류 기준 자동 계산값(예상 청구액)과 비교한 값이며, AI 판단을 사람이 뒤집은 비율이 아닙니다. '발송 전 차단된 표현'은 보내기 전에 막힌 직원 문구와 AI 답변에서 뺀 문장 수입니다.", demo_user:"데모 사용자 (로컬 전용)", pending_badge:"2차 결재 대기", pending_t:"두 번째 심사자 확인 대기", pending_why:"2차 결재가 필요한 이유",
+       why_deny:"부지급", deny_of:"예상 청구액 {x} 전액 거절", deny_none:"인정된 서류가 없어 예상 청구액 $0.00", basis_check:"부지급 대신 서류 보완 요청을 권해요. 확인이 필요한 서류가 남아 있고({open}), 이런 서류 문제는 근거 조항({clauses})이 아니라 CL-1(청구 서류)에 따른 보완 대상이에요.", return_to_info:"반려하고 추가 정보 요청으로", decision_reason:"요청자 사유", basis_flag:"근거 조항과 미해결 서류 사유 불일치", basis_override:"근거 경고를 무시하고 확정", siu_badge:"SIU 보류", siu_linked_badge:"SIU 검토 연결", siu_reason:"의뢰 사유", siu_only_deny:"보류는 유지돼요. 2차 결재를 거친 부지급만 진행할 수 있어요", siu_handoff_to:"인계 대상", siu_pay_script:"지급 전에 확인 절차가 하나 남아 있어요. 끝나면 저희가 먼저 연락드릴게요. 지금은 지급 일정을 말씀드리기 어려워요.", siu_release_pay:"지급 보류 해제", siu_release_q:"지급을 진행해도 되는 이유를 적어 주세요(감사 기록에 남습니다):", cb_change_badge:"콜백 시간 변경 요청", cb_change_day:"지금 잡힌 시각이 이미 그 시간대 안이에요. 다른 날을 원하실 수 있으니 통화할 때 날짜를 확인해 주세요.", decision_free_text:"“{p}”는 결정을 말하는 표현이에요. 직접 쓴 안내로는 보낼 수 없어요. 청구 내용으로 채워지는 '감액 이유'나 '지급 예정일' 안내를 써 주세요.", siu_outcome:"SIU 결론", siu_o_no_fraud:"혐의 없음", siu_o_fraud_confirmed:"사기 확인(그에 따라 결정)", siu_o_referred_to_police:"수사 의뢰", siu_outcome_need:"SIU 결론을 골라 주세요.", siu_kind:"의심 유형", siu_k_document_reuse:"다른 청구 서류 재사용", siu_k_forged_document:"위조·변조 서류", siu_k_duplicate_claim:"같은 비용 중복 청구", siu_kind_need:"의심 유형을 골라 주세요.", siu_not_self:"SIU 결론은 의뢰한 사람이 아닌 관리자(SIU 팀 대행)가 기록해요.", siu_hold_err:"SIU 검토로 보류 중인 건이에요. 보류가 끝날 때까지 여행자에게 보낼 수 없고 결정도 할 수 없어요.", siu_script_t:"보류 중인 건이에요. 고객이 전화하면 이렇게만 안내해 주세요:", siu_script:"보내 주신 서류를 담당 부서에서 확인하고 있어요. 확인이 끝나면 저희가 먼저 연락드릴게요. 지금은 지급 일정을 말씀드리기 어려워요.", siu_dont:"조사·사기·다른 청구·다른 사람 서류는 말하지 마세요. 서류를 다시 달라고 하거나 날짜를 약속하지 마세요. '어떤 서류든 담당 부서 확인이 끝나야 안내드릴 수 있어요'라고만 하세요. 번호가 바뀌었다고 하면 새 번호를 통화 기록 메모에 적어 두세요(확인 후 반영). 통화 기록을 남기고 아래 심사자에게 인계해 주세요.", siu_linked_dont:"이 고객에게 다른 청구나 검토 사실은 말하지 마세요.", siu_hold_pay:"이 청구의 지급도 보류", siu_hold_pay_q:"지급을 보류하는 이유를 적어 주세요(감사 기록에 남습니다):", siu_pay_held:"지급 보류", siu_t:"SIU(보험사기 조사) 검토 의뢰로 보류 중", siu_linked:"연결 청구", siu_quiet:"보류 중에는 여행자에게 아무것도 보내지 않고 결정도 하지 않아요. 대화창 AI는 중립적으로만 답해요.", siu_clear:"보류 해제…", siu_linked_t:"이 청구의 서류가 {c} 건에도 쓰여 SIU 검토 중이에요", siu_hint:"다른 청구에 먼저 쓰인 서류가 있어요. 실수가 아니라 보험사기일 수 있고, 여행자에게 보완을 요청하면 탐지 사실만 알리게 돼요.", siu_refer:"SIU 검토 의뢰(보류)…", siu_q:"SIU에 의뢰하는 이유를 적어 주세요(감사 기록에 남고, 여행자에게는 알리지 않아요):", siu_clear_q:"SIU 검토 결과를 적어 주세요(감사 기록에 남습니다):", basis_override_q:"근거 조항이 미해결 서류 사유와 맞지 않아요. 그래도 부지급을 확정하는 이유를 적어 주세요(감사 기록에 남습니다):", return_to_info_note:"근거 조항이 미해결 서류 사유와 맞지 않음: 부지급 대신 서류 보완(CL-1) 요청", ask_docs_tpl:"보내 주신 서류에 다른 분 이름이 적혀 있어요. 본인 이름으로 된 항공사 확인서, 탑승권, 영수증을 이 대화창에 사진으로 보내 주세요.", deny_checks:"확인이 필요한 서류가 {n}건 있어요. 명의가 다르거나 읽을 수 없는 서류는 보통 부지급이 아니라 '추가 정보 요청'으로 보완받습니다. 그래도 지금 부지급하는 이유를 적어 주세요(감사 기록에 남습니다):", why_partial:"일부 지급", why_amount:"기준 금액 초과", why_open_checks:"미해결 확인 사항", confirm_dec:"확정하고 발송", return_dec:"반려",
+       not_self:"본인이 올린 결정은 다른 심사자가 확정해야 합니다.", return_why:"반려 사유를 적어 주세요(처음 올린 심사자에게 남습니다):",
+       confirm_dec_q:"확정할까요? 여행자에게 바로 안내됩니다.", sent_for_second:"저장했습니다. 다른 심사자가 확정하면 여행자에게 안내됩니다.",
+       bulk_waiting:"{n}명은 대량 발송 기준을 넘어 두 번째 관리자 승인 후 발송됩니다(운영 도구 메뉴).", bulkq_t:"승인 대기 중인 대량 발송", bulk_send:"승인하고 발송", t_audit:"감사 기록", audit_open:"감사 기록 보기", audit_hint:"누가 언제 어떤 청구를 열람·변경·발송했는지 날짜별로 봅니다. 관리자 전용.",
+       audit_q:"사용자, 청구번호, 내용 검색", audit_all:"모든 동작", audit_at:"시각", audit_who:"사용자", audit_what:"동작", audit_target:"대상",
+       audit_detail:"내용", audit_none:"이 날짜에 기록이 없습니다.", audit_note:"시각은 이 컴퓨터의 시간입니다. 이 화면에서는 기록을 고칠 수 없고, 같은 기록이 변경 불가 보관소(S3 Object Lock)에도 저장됩니다. 감사 기록 열람·내려받기도 기록됩니다.", audit_sent:"건수", doc:"서류", bk_count:"대상 {n}명", bk_skipped:"{n}명 제외 (지연 담보 없는 플랜)",
+       bk_cost:"문자 {parts}건(분할 포함) · 예상 비용 ${usd} (약 {krw}원)", bk_second:"대량 발송 기준을 넘었습니다. 두 번째 관리자의 승인이 필요합니다.",
+       bk_ack:"대상과 문구를 확인했습니다. 실제 메시지 {n}건이 발송됩니다.", bk_go:"{n}명에게 보내기", cancel:"취소", t_disrupt:"결항·지연 등록", t_remind:"리마인더", t_demo:"데모 데이터",
+       disrupt_hint:"이 항공편·날짜에 예약된 모든 여행자에게 실제 문자가 발송됩니다.", remind_hint:"서류가 남은 여행자에게 실제 문자가 발송됩니다.",
+       demo_hint:"데모용 가상 여행자 7명을 만듭니다. 문자는 보내지 않습니다.",
+       disrupt_hint_sim:"이 항공편·날짜에 예약된 모든 여행자에게 문자를 보냅니다(데모: 휴대폰 시뮬레이터로).", remind_hint_sim:"서류가 남은 여행자에게 문자를 보냅니다(데모: 휴대폰 시뮬레이터로).",
+       bk_ack_sim:"대상과 문구를 확인했습니다. 메시지 {n}건이 휴대폰 시뮬레이터로 갑니다.",
+       attached:"첨부 {n}개", confirm_ok:"확인", demoreset:"데모 데이터 초기화", demoreset_hint:"데모 여행자와 그 청구·메시지·사진을 지웁니다. 감사 기록은 남아요.",
+       demoreset_q:"데모 여행자와 그 청구를 모두 지울까요? 감사 기록은 남아요.", demoreset_done:"삭제: 여행자 {t}명, 청구 {c}건, 사진 {d}장, 이벤트 {e}건",
+       simphone:"휴대폰 시뮬레이터", simphone_hint:"라우터가 보낸 SMS/RCS를 받고 답장하는 휴대폰 화면을 엽니다. 통신사 발송은 시뮬레이션이에요.",
+       bk_sim:"데모: SMS와 RCS는 통신사가 아니라 휴대폰 시뮬레이터로 가요.",
+       confirm_disrupt:"{f}편({d}) {t} 안내를 예약된 모든 여행자에게 보낼까요?\n실제 문자가 발송됩니다.", confirm_remind:"서류가 남은 여행자에게 지금 리마인더를 보낼까요? 실제 문자가 발송됩니다.",
+       search:"이름, 전화 뒤 4자리, 청구번호, 편명 검색", f_all:"모든 상태", f_check:"확인 필요만",
+       msg:"여행자에게 보낼 메시지", msg_help:"지급 결정·추가 정보 요청과 함께, 또는 '안내만 보내기'로 문자·채팅 발송됩니다.",
+       memo:"내부 메모", memo_help:"직원만 봅니다. 여행자에게 발송되지 않습니다.", savememo:"메모 저장",
+       confirm_send:"{name}님에게 다음 내용을 보낼까요?\n\n{text}", empty_msg:"(메시지 없음)", needmsg:"여행자에게 요청할 내용을 먼저 적어 주세요.",
+       noperm:"이 역할로는 할 수 없는 작업입니다.", role:{admins:"관리자",reviewers:"심사자",agents:"상담원"},
+       via_letter:"항공사 확인서로 확인 (예약번호·예정 출발 시각 기재)", from:"근거 서류", pending:"재촬영 대기 {n}건",
+       acts:{callback_change_requested:"여행자 콜백 시간 변경 요청", siu_referred:"SIU 검토 의뢰(보류)", callback_cancelled:"여행자 전화 요청 취소", appeal_withdrawn:"고객 이의 철회", callback_requested:"여행자 전화 요청", call_log:"통화 기록", handoff_done:"인계 처리 완료", appeal:"고객 이의 신청", appeal_by_phone:"전화 이의 접수", appeal_upheld:"이의 회신: 원결정 유지", correct:"결정 정정", assign:"담당 지정", handoff:"인계", bank_correction_cancel:"계좌 정정 취소", contact_update:"연락처 변경", decision_requested:"결정 요청(2차 결재 대기)",decision_returned:"결정 반려",deny:"부지급",approve:"지급 결정",request_info:"추가 정보 요청",note:"내부 메모",message:"안내 발송",resend_link:"대화 링크 재발송",bank_correction:"계좌 재입력 요청"},
+       support:"상담 조치", payamt:"지급액 (USD)", amount_est:"예상 청구액", partial_hint:"예상 청구액보다 적습니다: 일부 지급 — 근거 조항을 고르고 메시지에 이유를 적어 주세요.",
+       basis_pick:"일부 지급·부지급 근거 조항", deny:"부지급", need_basis:"일부 지급이나 부지급은 근거 조항 1개 이상과, 여행자에게 이유를 설명하는 메시지가 필요합니다.",
+       dec_full:"전액 지급", dec_partial:"일부 지급", dec_deny:"부지급", sendmsg:"안내만 보내기", resend:"대화 링크 다시 보내기", bankfix:"계좌 정정 요청",
+       idcheck:"고객 본인 확인을 어떻게 했나요? (예: 생년월일 + 증권번호, 감사 기록에 남습니다)",
+       bankfix_note:"지금 계좌는 고객이 보안 페이지에서 새 계좌를 넣을 때까지 쓰지 않습니다. 계속할까요?",
+       bank_pending:"새 입금 계좌 입력 대기", was:"이전", identity:"본인 확인",
+       worksheet:"산정표", date:"일자", merchant:"가맹점", amount:"금액", counted:"인정", daytotal:"일 합계",
+       estimate:"예상 청구액", limits:"한도", day:"일", trip:"여행", left:"여행 한도 잔여", nocover:"이 플랜에는 항공기 지연 담보가 없습니다 [PLAN-1].",
+       fxnote:"데모 환율입니다. 실제로는 지출일 환율을 적용합니다 [TD-5]. 최종 금액은 심사자가 결정합니다.",
+       payto:"입금 계좌", reviewflag:"검토", needscheck:"확인 필요", retakewait:"재촬영 대기", approve_reason:"미해결 확인 사항 {n}건이 있습니다. 그래도 지급을 결정하는 사유를 적어 주세요(감사 기록에 남습니다):", approved_despite:"미해결 사항이 있는 상태에서 결정한 이유"},
+};
+const STATUS = {en:{alerted:"alerted",open:"open",collecting:"collecting",ready:"ready",review:"needs review",submitted:"submitted",
+                    approved:"payment decided",denied:"denied",info_requested:"info requested",likely_covered:"policy terms met (as asked)",likely_not_covered:"policy terms not met (as asked)",needs_info:"needs info",docs_pending:"documents not verified yet"},
+                ko:{alerted:"알림 발송",open:"접수",collecting:"서류 수집 중",ready:"제출 준비",review:"검토 필요",submitted:"제출됨",
+                    approved:"지급 결정",denied:"부지급",info_requested:"정보 요청",likely_covered:"약관상 해당 (문의 기준)",likely_not_covered:"약관상 해당 안 됨 (문의 기준)",needs_info:"정보 필요",docs_pending:"서류 확인 전"}};
+const ITEMS = {en:{airline_letter:"Airline letter",original_eticket:"Original ticket",replacement_boarding_pass:"Replacement boarding pass",
+                   expense_receipts:"Expense receipts",claim_form:"Claim form (secure page)",photo_id:"Photo ID (secure page)"},
+               ko:{airline_letter:"항공사 확인서",original_eticket:"원래 항공권",replacement_boarding_pass:"대체편 탑승권",
+                   expense_receipts:"지출 영수증",claim_form:"청구서 (보안 페이지)",photo_id:"신분증 (보안 페이지)"}};
+const DOC = {en:{airline_letter:"Airline letter",receipt:"Receipt",eticket:"E-ticket",boarding_pass:"Boarding pass",other:"Other"},
+             ko:{airline_letter:"항공사 확인서",receipt:"영수증",eticket:"전자항공권",boarding_pass:"탑승권",other:"기타"}};
+const FLAG = {en:{out_of_window:"Outside the delay window",excluded_item:"Item not covered",airline_provided:"Already provided by the airline",
+                  duplicate:"Duplicate receipt",over_daily_limit:"Above the daily limit",over_trip_limit:"Above the trip limit",
+                  location_mismatch:"Far from the airports",flight_mismatch:"Flight number differs",name_mismatch:"Passenger name differs",
+                  cause_not_covered:"Cause not covered",delay_below_threshold:"Delay under 4 hours",retake:"Unreadable, retake requested",
+                  name_unverified:"Name not verified", other_claim_document:"Also in another claim", other_insurance_declared:"Declared another insurance", airline_paid_declared:"Declared airline compensation"},
+              ko:{out_of_window:"지연 기간 밖의 지출",excluded_item:"보상 제외 항목",airline_provided:"항공사가 이미 제공",
+                  duplicate:"중복 영수증",over_daily_limit:"하루 한도 초과",over_trip_limit:"여행 한도 초과",
+                  location_mismatch:"공항과 먼 지역",flight_mismatch:"편명 불일치",name_mismatch:"승객 이름 불일치",
+                  cause_not_covered:"보장되지 않는 사유",delay_below_threshold:"4시간 미만 지연",retake:"판독 불가, 재촬영 요청",
+                  name_unverified:"이름 확인 불가", other_claim_document:"다른 청구의 서류", other_insurance_declared:"다른 보험 청구 고지", airline_paid_declared:"항공사 보상 수령 고지"}};
+let lang = localStorage.getItem("lang") || (navigator.language.startsWith("ko") ? "ko" : "en");
+function clauseName(v, id) {  // a clause's name in the desk's language (the packet keeps the review language)
+  const d = (v.decision_clauses || []).find(x => x.id === id);
+  return ((v.clause_names_by_lang || {})[lang] || {})[id] || (d && ((d.names || {})[lang] || d.name)) || (v.clause_names || {})[id] || "";
+}
+// On a demo deployment with the phone simulator, texts are not sent to a carrier: the "_sim" wording says so.
+let simDemo = false;  // set by loadMe
+const tr = k => (simDemo && (T[lang][k + "_sim"] ?? T.en[k + "_sim"])) || (T[lang][k] ?? T.en[k]);
+function setLang(l) { lang = l; localStorage.setItem("lang", l); document.documentElement.lang = l; paint(); drawList(); if (current) openClaim(current); }
+function paint() {
+  document.querySelectorAll("[data-t]").forEach(e => e.textContent = tr(e.dataset.t));
+  document.getElementById("q").placeholder = tr("search");
+  const fs = document.getElementById("fs"), keep = fs.value;
+  fs.innerHTML = `<option value="">${tr("f_all")}</option>` + ["alerted","collecting","ready","review","submitted","approved","info_requested"]
+    .map(k => `<option value="${k}">${STATUS[lang][k]}</option>`).join(""); fs.value = keep;
+  drawWho();
+  document.getElementById("l-en").className = lang==="en" ? "on" : ""; document.getElementById("l-ko").className = lang==="ko" ? "on" : "";
+  if (!current) document.getElementById("detail").innerHTML = `<div class="empty">${tr("select")}</div>`;
+}
+
+const cfg = window.TRIPCLAIM || {auth:false};
+let token = sessionStorage.getItem("idt"), current = null;
+const hdrs = () => ({"content-type":"application/json", ...(token ? {authorization:`Bearer ${token}`} : {}),
+  ...(localStorage.getItem("demoUser") ? {"x-demo-user": localStorage.getItem("demoUser")} : {})});  // local demo only
+const api = async (p, opt={}) => {
+  const r = await fetch(p, {...opt, headers:hdrs()});
+  if (r.status === 401) { sessionStorage.removeItem("idt"); location.replace(window.loginUrl()); throw new Error("login required"); }
+  return r.headers.get("content-type").includes("json") ? r.json() : r.text();
+};
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const chip = (s, dec) => dec === "partial" && s === "approved" ? `<span class="chip approved">${esc(tr("partial_status"))}</span>`  // never "approved" for a part payment
+  : `<span class="chip ${esc(s)}">${esc(STATUS[lang][s] || (s||"-").replace(/_/g," "))}</span>`;
+// a hand-off or call-back still in time is not an alarm: grey, orange in the last 2 hours, red once late
+const dueClass = iso => { if (!iso) return "hn"; const ms = new Date(iso).getTime() - Date.now(); return ms < 0 ? "ho" : ms < 2 * 3600e3 ? "hs" : "hn"; };
+// a call the traveler asked for from abroad: their window in their own time, and whether it meets our hours
+const localAt = (iso, off) => { const t = new Date(Date.parse(iso) + off * 60e3);  // the same moment on the traveler's clock
+  const wd = lang === "ko" ? "일월화수목금토"[t.getUTCDay()] : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][t.getUTCDay()];  // a weekend there shows
+  return `${t.getUTCMonth() + 1}/${t.getUTCDate()}(${wd}) ${String(t.getUTCHours()).padStart(2, "0")}:${String(t.getUTCMinutes()).padStart(2, "0")}`; };
+const cbLocal = cb => cb.tz_offset == null ? "" : `${cb.due && cb.tz_offset !== 540 ? ` (= ${esc(tr("cb_their").replace("{t}", localAt(cb.due, cb.tz_offset)))})` : ""} · ${esc(tr("cb_local").replace("{w}", tr("pref_" + (cb.pref || "any")))
+  .replace("{off}", (cb.tz_offset < 0 ? "−" : "+") + Math.floor(Math.abs(cb.tz_offset) / 60) + (Math.abs(cb.tz_offset) % 60 ? ":" + String(Math.abs(cb.tz_offset) % 60).padStart(2, "0") : "")))}${cb.in_hours === false ? ` · ${esc(tr("cb_nohours"))}` : ""}`;
+const who = u => u && u.startsWith("team:") ? tr("team_" + u.slice(5)) : (u === "traveler" ? tr("traveler_req") : u);  // a team queue reads as a team
+const shortWhen = iso => new Date(iso).toLocaleString(lang === "ko" ? "ko-KR" : "en-US", {month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit"});
+const ch = c => c ? `<span class="ch ${c}">${esc(lang === "ko" ? KO_CH[c] || c : c)}</span>` : "";
+// System wording in the reviewer's language (the server records it in English)
+const KO_REASON = [[/^replying in the web chat the traveler opened from our link/, "여행자가 링크로 연 웹 채팅에 답장"],
+  [/^replying on the channel the traveler used \((\w+)\)/, "여행자가 쓴 채널($1)로 답장"], [/^traveler's preferred channel \((\w+)\)/, "여행자가 선호하는 채널($1)"],
+  [/^fallback order/, "기본 발송 순서"], [/^copy in the web chat the traveler is using/, "여행자가 쓰는 웹 채팅에 사본"],
+  [/^claim packet to the insurer's claims inbox/, "보험사 청구 접수함으로 청구 묶음"], [/; skipped earlier: undelivered at (\S+)/, "; 앞 채널 미전달($1)"],
+  [/; inside 24h session window/, "; 24시간 대화 창 안"], [/; outside 24h window, template (\S+)/, "; 24시간 창 밖, 템플릿 $1"]];
+const KO_STATUS = {sent:"발송됨", delivered:"전달됨", read:"읽음", failed:"실패", received:"수신", undelivered:"미전달"};
+const KO_CH = {web:"웹 채팅", sms:"문자", email:"이메일", whatsapp:"WhatsApp", rcs:"RCS"};
+const CH_NAME = {ko:{...KO_CH, none:"연락 불가"}, en:{web:"web chat", sms:"SMS", email:"email", whatsapp:"WhatsApp", rcs:"RCS", none:"unreachable"}};
+const reasonText = r => lang === "ko" ? KO_REASON.reduce((t, [re, ko]) => t.replace(re, ko), r || "") : (r || "");
+const statusText = st => lang === "ko" ? (KO_STATUS[st] || st) : st;
+function flagDetail(f) {
+  const d = f.detail || "";
+  if (lang !== "ko") return d;
+  let m = d.match(/^legibility (\w+), confidence ([\d.]+)/);
+  if (m) return `${({unreadable:"읽을 수 없음", poor:"흐림", good:"양호"})[m[1]] || m[1]} · 판독 신뢰도 ${Math.round(+m[2] * 100)}%`;
+  if (d.startsWith("date/time not readable")) return "날짜·시각을 읽을 수 없음";
+  m = d.match(/^(.+) vs (.+)$/);
+  if (m && (f.code === "name_mismatch" || f.code === "flight_mismatch")) return `서류: ${m[1]} · 청구: ${m[2]}`;
+  return d;
+}
+const flagLine = f => `<div class="flag">${ic("alert")} ${esc(FLAG[lang][f.code] || f.code)} <span class="muted">${esc(flagDetail(f))}</span></div>`;
+const list = (items, n=3) => `<ul class="tight">${items.slice(0,n).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>` +
+  (items.length > n ? `<details><summary class="muted">${tr("more")} (${items.length-n})</summary>${list(items.slice(n), 99)}</details>` : "");
+
+// ---- who am I: buttons follow the signed-in role (the API enforces the same rules) ----
+let me = {user: "", roles: [], can: []};
+const can = a => me.can.includes(a);
+function drawWho() {
+  const w = document.getElementById("who"); if (!w) return;
+  const roles = `<b>${me.roles.map(r => (T[lang].role || T.en.role)[r] || r).join(", ")}</b>`;
+  w.innerHTML = me.demo_users ? `<select id="du" title="${esc(tr("demo_user"))}"><option value="">local-reviewer</option>${me.demo_users.map(u => `<option ${u === me.user ? "selected" : ""}>${esc(u)}</option>`).join("")}</select> · ${roles}`
+    : me.user ? `${esc(me.user)} · ${roles}` : "";
+  const du = document.getElementById("du");
+  if (du) du.onchange = async () => { localStorage.setItem("demoUser", du.value); await loadMe(); if (current) openClaim(current); };
+  document.getElementById("tools").style.display = can("disrupt") || can("demo") ? "" : "none";
+}
+async function loadMe() {
+  try { me = await api("/api/me"); } catch (e) {}
+  const sim = !!(me && me.sim_phone && (me.can || []).includes("demo"));  // demo deployments only
+  document.getElementById("simphone").hidden = document.getElementById("simphone_h").hidden = !sim;
+  document.getElementById("demoreset").hidden = document.getElementById("demoreset_h").hidden = !sim;
+  if (me && me.sim_phone && !simDemo) { simDemo = true; paint(); }
+  drawWho();
+}
+
+// ---- claim list with search and filters; redrawn only when something changed ----
+let rows = [], listSig = "";
+async function loadList() {
+  rows = await api("/api/claims");
+  drawList();
+}
+function drawList() {
+  const q = document.getElementById("q").value.trim().toLowerCase(), st = document.getElementById("fs").value, fc = document.getElementById("fc").checked;
+  const fo = document.getElementById("fo"), own = fo.value;
+  if (!fo.options.length || fo.dataset.lang !== lang) { fo.dataset.lang = lang; fo.innerHTML = ["", "mine", "handed", "appeals", "callbacks", "none"].map(k => `<option value="${k}">${tr("fo_" + (k || "all"))}</option>`).join(""); fo.value = own; }
+  const ownOk = r => !own || (own === "mine" ? r.assignee === me.user : own === "handed" ? r.handoff && (r.assignee === me.user || (r.assignee || "").startsWith("team:") && me.roles.includes(r.assignee.slice(5)))
+    : own === "appeals" ? !!r.appeal : own === "callbacks" ? !!r.callback : !r.assignee);
+  const shown = rows.filter(r => (!st || r.status === st) && (!fc || (r.open || []).length) && ownOk(r) &&
+    (!q || [r.traveler, r.id, r.flight, (r.phone || "").slice(-4)].some(x => String(x || "").toLowerCase().includes(q))));
+  const sig = JSON.stringify([shown, current, lang]);
+  if (sig === listSig) return;
+  listSig = sig;
+  document.getElementById("rows").innerHTML = shown.length ? shown.map(r => `
+    <div class="row ${r.id===current?"on":""}" onclick="openClaim('${r.id}')">
+      <div class="top"><span><b>${esc(r.traveler)}</b><span class="loc">${esc((r.locale||"en").toUpperCase())}</span></span>${chip(r.status, r.decision)}</div>
+      ${r.cb_change ? `<div class="pendb">${ic("alert")} ${tr("cb_change_badge")}</div>` : ""}${r.siu ? `<div class="pendb">${ic("alert")} ${tr(r.siu === "hold" ? "siu_badge" : "siu_linked_badge")}</div>` : ""}${r.pending ? `<div class="pendb">${ic("alert")} ${tr("pending_badge")}</div>` : ""}${r.appeal ? `<div class="pendb">${ic("alert")} ${tr(r.appeal === "overdue" ? "appeal_overdue" : "appeal_t")}</div>` : ""}${r.callback ? `<div class="meta ${dueClass(r.callback.due)}">${ic("phone")} <b>${tr("callback_badge")} ${esc(shortWhen(r.callback.due))}</b> · ${esc(who(r.callback.by))}</div>` : ""}
+      ${r.assignee || r.due ? `<div class="meta">${r.assignee ? `${tr("owner")} ${esc(who(r.assignee))}${r.handoff ? ` · <b class="${dueClass(r.handoff.due)}">${tr("handed")}${r.handoff.due ? ` · ${tr("by_when")} ${esc(shortWhen(r.handoff.due))}` : ""}</b>` : ""}` : ""}${r.assignee && r.due ? " · " : ""}${r.due ? `${tr(r.due.kind === "pay" ? "dueAt" : "checkBy")} ${esc(r.due.date.slice(5).replace("-", "/"))}` : ""}</div>` : ""}<div class="meta"><span class="id">${esc(r.id)}</span>${r.phone ? ` · ${ic("phone")} ${esc(r.phone)}` : ""}</div>
+      <div class="meta">${esc(r.flight)} · ${esc(r.date)} · ${(() => { const ok = Object.values(r.checklist||{}).filter(Boolean).length;  // "받음 4 · 인정 0/6" when photos did not count
+          return r.received > ok ? `${tr("received")} ${r.received} · ${tr("counted6")} ${ok}/6` : `${tr("docs")} ${ok}/6`; })()}
+        ${openBadge(r.open || [])}</div>
+    </div>`).join("") : `<div class="empty">${tr("none")}</div>`;
+}
+["q", "fs", "fc", "fo"].forEach(id => document.getElementById(id).addEventListener("input", drawList));
+
+// ---- claim detail: re-rendered only when the data changed, and never over what the reviewer is typing ----
+let detailSig = "";
+async function openClaim(id, quiet = false) {
+  if (!quiet) { current = id; detailSig = ""; drawList(); }
+  const v = await api(`/api/claims/${id}${quiet ? "" : "?open=1"}`);  // a deliberate open is logged in the audit trail
+  if (id !== current) return;
+  const sig = JSON.stringify([v, lang]);
+  if (quiet && sig === detailSig) return;
+  const typing = ["msg", "memo", "smsg"].map(k => document.getElementById(k)).filter(Boolean);
+  if (quiet && typing.some(t => t === document.activeElement)) return;  // wait until the reviewer leaves the field
+  const saved = Object.fromEntries(typing.map(t => [t.id, t.value]));
+  detailSig = sig;
+  renderClaim(v);
+  for (const [k, val] of Object.entries(saved)) {  // a field can disappear when the role or the claim's state changes
+    const el = document.getElementById(k);
+    if (el && (!quiet || val)) el.value = quiet ? val : "";
+  }
+}
+// Worksheet: each receipt in USD (demo rate), what counts, daily cap, trip cap [PLAN-2]
+function estCard(e) {
+  if (!e || !(e.rows || []).length) return "";
+  const usd = x => x == null ? "-" : `$${(+x).toFixed(2)}`;
+  // reviewers can count less of a receipt (minibar, airline-paid…): the amount to pay follows, with the reason kept
+  const dec = (currentView.claim || {}).decision, edit = can("approve") && !dec;
+  const decided = Object.fromEntries(((dec || {}).lines || []).map(l => [l.doc, l]));  // the same lines the packet shows
+  const adjCell = r => `$<input class="adj" type="number" min="0" max="${r.counted_usd}" step="0.01" value="${(+r.counted_usd).toFixed(2)}" data-doc="${esc(r.doc)}" data-max="${r.counted_usd}" oninput="adjChanged()">
+      <select class="adjr" data-doc="${esc(r.doc)}" hidden onchange="adjChanged()">${ADJ.map(a => `<option value="${a}">${esc(tr("adj_" + a))}</option>`).join("")}</select>`;
+  // same notes as the packet: the night a hotel bill counts for (paid the next morning) and the rate used per line
+  const rows = e.rows.map(r => `<tr><td>${esc(r.date)}${r.paid ? `<br><small class="muted">${esc(tr("night_paid").replace("{paid}", r.paid))}</small>` : ""}</td><td>${esc(r.merchant || "")}</td><td>${esc(r.currency || "")} ${esc(r.total ?? "")}${r.per_usd && r.currency !== "USD" ? `<br><small class="muted">1 USD = ${esc(r.per_usd)} ${esc(r.currency)}</small>` : ""}</td>
+      <td>${usd(r.usd)}</td><td>${r.excluded.length ? `<span class="flag">${r.excluded.map(c => esc(FLAG[lang][c] || c)).join(", ")}</span>` : edit && r.counted_usd ? adjCell(r) : decided[r.doc] ? `<s class="muted">${usd(decided[r.doc].from)}</s> <b>${usd(decided[r.doc].to)}</b><br><small class="muted">${esc(tr("adj_" + decided[r.doc].reason))}</small>` : usd(r.counted_usd)}</td></tr>`).join("");
+  // after a decision the day totals follow the decided lines (as the packet does); before it, the automatic figures
+  const dayDecided = d => Math.min(e.daily || Infinity, e.rows.filter(r => r.date === d && !(r.excluded || []).length)
+    .reduce((t, r) => t + (decided[r.doc] ? +decided[r.doc].to : +r.counted_usd || 0), 0));
+  const days = Object.entries(e.days || {}).map(([d, x]) => { const v = dec && Object.keys(decided).length ? dayDecided(d) : null;
+    return `<tr><td colspan=4 class="muted">${esc(d)} ${tr("daytotal")}</td><td>${v != null && Math.abs(v - x.capped) > 0.004
+      ? `<s class="muted">${usd(x.capped)}</s> <b>${usd(v)}</b>` : `${usd(x.usd)}${x.capped < x.usd ? ` → <b>${usd(x.capped)}</b>` : ""}`}</td></tr>`; }).join("");
+  return `<div class="card wide"><h3>${tr("worksheet")}</h3>${e.covered ? "" : `<p class="flag">${tr("nocover")}</p>`}
+    <table><tr><th>${tr("date")}</th><th>${tr("merchant")}</th><th>${tr("amount")}</th><th>USD</th><th>${tr("counted")}</th></tr>${rows}${days}</table>
+    ${dec ? `<p><b>${tr("decided_amount")}: ${usd(dec.amount_usd)}</b> <span class="muted">(${tr("estimate")} ${usd(e.estimate_usd)})</span></p>` : ""}
+    ${e.covered && !dec ? `<p><b>${tr("estimate")}: ${usd(e.estimate_usd)}</b> <span class="muted">(${tr("limits")} $${e.daily}/${tr("day")}, $${e.trip}/${tr("trip")} · ${tr("left")} ${usd(e.remaining_usd)})</span></p>
+      <p id="adjsum" class="adjsum" hidden></p>` : ""}
+    <p class="muted">${tr("fxnote")}</p></div>`;
+}
+const openBadge = open => {  // "확인 필요 3 · 재촬영 1 · 검토 1": same counting as the checklist and the approval prompt
+  const n = k => open.filter(c => k === "flag" ? !c.includes(":") : c.startsWith(k + ":")).length;
+  const parts = [["check", tr("needscheck")], ["retake", tr("retakewait")], ["flag", tr("reviewflag")]].filter(([k]) => n(k)).map(([k, l]) => `${l} ${n(k)}`);
+  return parts.length ? `· <span class="flag">${parts.join(" · ")}</span>` : "";
+};
+let currentView = {};
+const openLabel = code => { if (code === "bank_pending") return tr("bank_pending"); const [kind, item] = code.split(":");
+  return item ? `${ITEMS[lang][item] || item} — ${tr(kind === "check" ? "needscheck" : "retakewait")}` : (FLAG[lang][code] || code); };
+function renderClaim(v) {
+  currentView = v;
+  const c = v.claim, cov = c.coverage || {};
+  const docById = Object.fromEntries(v.documents.map(d => [d.id, d]));
+  const unreadable = {en:"Unreadable photo", ko:"판독 불가 사진"};
+  const words = {ko:{cancelled:"결항", delayed:"지연", departed:"정시 출발"}};
+  const summary = d => { let s = d.view.summary.replace(/^[a-z_]+: /, "");
+    if (s === "unreadable") return unreadable[lang];
+    for (const [w, k] of Object.entries(words[lang] || {})) s = s.replace(` · ${w}`, ` · ${k}`);
+    return s; };
+  // each checklist item says which document satisfied it, and what is still waiting for a retake
+  const checks = Object.keys(ITEMS.en).map(k => {
+    const it = v.checklist[k], ev = (it.docs || []).map(id => docById[id]).filter(Boolean);
+    const viaLetter = k === "original_eticket" && ev.length && ev.every(d => (d.extracted||{}).doc_type === "airline_letter");
+    const cf = c.claim_form || {};
+    const evidence = viaLetter ? tr("via_letter")
+      : k === "claim_form" && it.done && cf.bank ? `${tr("payto")}: ${cf.bank} •••${cf.account_last4 || ""}${cf.holder ? ` (${cf.holder})` : ""}`
+      : ev.map(d => `${DOC[lang][(d.extracted||{}).doc_type] || ""} ${summary(d)}`).join(" / ");
+    const needs = !it.done && (it.check || []).length;
+    return `<div class="check"><span class="${it.done ? "ok" : needs ? "warn" : "no"}">${ic(it.done ? "done" : needs ? "alert" : "todo")}</span><div>${esc(ITEMS[lang][k])}
+      ${needs ? `<small class="w">${tr("needscheck")}${(it.why || []).length ? ` (${esc(it.why.map(c => FLAG[lang][c] || c).join(", "))})` : ""}: ${esc(it.check.map(id => docById[id] ? summary(docById[id]) : id).join(" / "))}</small>` : ""}
+      ${it.done && evidence ? `<small>${tr("from")}: ${esc(evidence)}</small>` : ""}
+      ${(it.pending||[]).length ? `<small class="w">${ic("alert")} ${tr("pending").replace("{n}", it.pending.length)}</small>` : ""}</div></div>`; }).join("");
+  const docs = v.documents.map(d => `<tr><td style="white-space:nowrap">${esc(DOC[lang][(d.extracted||{}).doc_type] || (d.extracted||{}).doc_type)}</td><td>${ch(d.source_channel)}</td>
+      <td>${esc(summary(d))}${d.s3_key && /^image\//.test(d.mime || "") && can("view_docs") ? `<br><button class="link" onclick="viewDoc('${esc(v.claim.id)}','${esc(d.id)}',${d.twin ? `'${esc(d.twin.claim)}','${esc(d.twin.doc)}'` : "null,null"})">${ic("image")} ${tr(d.twin ? "compare" : "original")}</button>` : ""}</td>
+      <td>${d.flags.length ? d.flags.map(flagLine).join("") : `<span class="ok">${ic("check")}</span>`}</td></tr>`).join("");
+  const photos = n => lang === "ko" ? `사진 ${n}장` : `${n} photo${n > 1 ? "s" : ""}`;
+  const body = m => (m.subject ? `<b>${esc(m.subject)}</b>\n` : "") + esc((m.kind==="packet" ? tr("packetmsg") : m.text === "[attachment]" ? photos((m.media||[]).length) : m.text || "").trim());
+  const when = iso => { try { return new Date(iso).toLocaleString(lang === "ko" ? "ko-KR" : "en-US", {month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit"}); } catch (e) { return iso; } };
+  const msgs = v.messages.map(m => `<div class="msg ${m.direction} ${m.status==="failed"?"failed":""}">
+      <div>${ch(m.channel)} ${m.kind==="template"?`<span class="muted">${tr("template")}</span>`:""}${(m.media||[]).length?` <span class="muted">${ic("clip")} ${esc(m.media.join(", "))}</span>`:""}</div>
+      <div style="white-space:pre-wrap">${body(m)}</div>${m.direction==="out" ? `<div class="why">${esc(reasonText(m.chosen_reason))} · ${esc(statusText(m.status))}${m.channel === "sms" && (v.sender || {}).sms ? ` · ${tr("from_no")} ${esc(v.sender.sms)}` : ""}${m.at ? ` · ${esc(when(m.at))}` : ""}${sesId(m)}</div>` : ""}</div>`).join("");
+  const claimFlags = (c.flags||[]).filter(f => !f.doc && f.code!=="missing_airline_letter");
+  const dueDay = iso => { const d = new Date(iso + "T00:00:00");  // same form as the traveler's chat: "10/14(수)"
+    return lang === "ko" ? `${d.getMonth() + 1}/${d.getDate()}(${"일월화수목금토"[d.getDay()]})` : d.toLocaleDateString("en-US", {weekday: "short", month: "short", day: "numeric"}); };
+  const supportCard = v => { const c = v.claim, h = c.handoff, form = c.claim_form || {};
+    return `<div class="card support"><h3>${ic("phone")} ${tr("support")}</h3>
+      <p class="owner">${c.assignee ? `${tr("owner")}: <b>${esc(who(c.assignee))}</b>` : `<span class="muted">${tr("no_owner")}</span>`}
+        <button onclick="takeClaim()" ${(c.assignee || "").startsWith("team:") && !me.roles.includes(c.assignee.slice(5)) ? `disabled title="${esc(tr("not_in_team"))}"` : dis("assign")}>${tr("take")}</button> <button onclick="handoffDlg()" ${dis("handoff")}>${tr("handoff")}</button></p>
+      ${c.callback ? (cb => { const far = cb.tz_offset != null && cb.tz_offset !== 540;  // line 1: when (both clocks); line 2: who, about what, their window
+        return `<p class="${dueClass(cb.due)}">${ic("phone")} <b>${tr("callback_open")} ${esc(when(cb.due))}</b>${far && cb.due ? ` · <b>${esc(tr("cb_their").replace("{t}", localAt(cb.due, cb.tz_offset)))}</b>` : ""}
+          ${cb.change_request ? (r => { const W = {any: [9, 18], am: [9, 12], pm: [13, 18]}[r.pref] || [9, 18];
+              const lh = new Date(Date.parse(cb.due) + r.tz_offset * 60e3).getUTCHours(), inside = lh >= W[0] && lh < W[1];  // the set time is already in it
+              return `<br><span class="flag">${ic("alert")} ${esc(tr("cb_change_req").replace("{w}", tr("pref_" + r.pref)).replace("{off}", (r.tz_offset < 0 ? "−" : "+") + Math.floor(Math.abs(r.tz_offset) / 60)))}${inside ? ` ${esc(tr("cb_change_day"))}` : ""}</span>`; })(cb.change_request) : ""}
+          <br><small class="muted">${esc(who(cb.by))} · ${esc(tr("ct_" + cb.topic))}${cb.topic_guess ? ` (${tr("topic_guess")})` : ""}${cbLocal({...cb, due: null})}${cb.note ? ` — ${esc(cb.note)}` : ""}</small></p>`; })(c.callback) : ""}
+      ${(() => { const calls = v.actions.filter(a => a.type === "call_log").slice(-3).reverse();  // a caller who rings again: what was said last time
+        return calls.length ? `<div class="calls"><b>${tr("recent_calls")}</b>${calls.map(a => `<div>${esc(when(a.at))} · ${esc(a.reviewer)} · ${esc(tr("ct_" + a.detail.topic))} · ${esc(tr("cr_" + a.detail.result))}${a.note && a.note !== (c.callback || {}).note ? ` — ${esc(a.note)}` : ""}</div>`).join("")}</div>` : ""; })()}
+      ${h ? `<p class="handoff ${dueClass(h.due)}">${ic("alert")} <b>${esc(who(h.from))} → ${esc(who(h.to || c.assignee || ""))}</b>${h.taken_by ? ` (${esc(tr("taken_by").replace("{who}", h.taken_by))})` : ""} · ${esc(h.note)}${h.due ? ` · <b>${tr("by_when")} ${esc(when(h.due))}</b>` : ""}
+        <button onclick="staffAct('handoff_done')" ${[h.to, h.taken_by, c.assignee].includes(me.user) || me.roles.includes("admins") ? `${dis("handoff_done")}>${tr("handoff_done")}</button>`
+          : `disabled>${tr("handoff_done")}</button> <small class="muted">${esc(tr("done_who").replace("{who}", who(h.taken_by || h.to)))}</small>`}</p>` : ""}
+      <label for="smsg">${ic("mail")} ${tr("smsg")}</label>
+      <p class="canned">${["smishing", "pay_date", "why_less", "objection", "documents", "bank_fix", "contact", "own_docs"].map(k => `<button type="button" onclick="canned('${k}')">${tr("cb_" + k)}</button>`).join("")}</p>
+      <textarea id="smsg" placeholder="${esc(tr("smsg_ph"))}"></textarea>
+      <p><button class="primary" onclick="act('message')" ${dis("message")}>${tr("sendmsg")}</button></p>
+      <p class="sbtns"><button onclick="act('resend_link')" ${dis("resend_link")}>${tr("resend")}</button>
+        ${form.bank_reset ? `<button onclick="staffAct('bank_correction_cancel')" ${dis("bank_correction_cancel")}>${tr("bankfix_cancel")}</button>`
+          : `<button onclick="act('bank_correction')" ${dis("bank_correction")}>${tr("bankfix")}</button>`}
+        <button onclick="contactDlg()" ${dis("contact_update")}>${tr("contact_change")}</button>
+        <button onclick="callLog()" ${dis("call_log")}>${tr("call_log")}</button>
+        ${c.decision && c.decision.type !== "full" && !c.appeal ? `<button onclick="appealByPhone()" ${dis("appeal_by_phone")}>${tr("appeal_phone")}</button>` : ""}</p></div>`; };
+  const dis = a => can(a) ? "" : `disabled title="${esc(tr("noperm"))}"`;
+  document.getElementById("detail").innerHTML = `
+    <h2 style="margin:.1rem 0">${esc(v.traveler.name)} ${chip(c.status, (c.decision || {}).type)}</h2>
+    <p class="muted">${esc(c.id)} · ${esc(c.flight)} ${esc(c.route||"")} ${tr("on")} ${esc(c.flight_date)} · ${tr("plan")} ${esc(c.plan)}
+      ${v.event ? `· ${esc(T[lang]["ev_"+v.event.type] || v.event.type)}: ${esc(v.event.reason)}` : ""}
+      ${c.packet_html && can("approve") ? `· <a href="#" onclick="packet('${c.id}');return false">${tr("packet")}</a>` : ""}</p>
+    ${c.siu ? `<div class="pending"><b>${ic("alert")} ${tr("siu_t")}</b>${c.siu.reason != null
+        ? `<p>${c.siu.kind ? `${esc(tr("siu_k_" + c.siu.kind))} · ` : ""}${esc(c.siu.reason)} · ${esc(c.siu.by)}${(c.siu.linked || []).length ? ` · ${tr("siu_linked")}: ${c.siu.linked.map(x => `<a href="#" onclick="openClaim('${esc(x)}');return false">${esc(x)}</a>`).join(", ")}` : ""}</p>
+           ${c.siu.outcome ? `<p><b>${tr("siu_outcome")}: ${esc(tr("siu_o_" + c.siu.outcome))}</b> · ${esc(c.siu.concluded_by || "")} — ${tr("siu_only_deny")}</p>` : ""}
+           <p class="muted">${tr("siu_quiet")}</p>${me.roles.includes("admins") && c.siu.by !== me.user ? `<button type="button" onclick="siu(true)">${tr("siu_clear")}</button>` : `<p class="muted">${tr("siu_not_self")}</p>`}`
+        : `<p>${tr("siu_script_t")}</p><p class="canned">“${esc(tr("siu_script"))}”</p><p class="muted">${tr("siu_dont")}</p>
+           <p><b>${tr("siu_handoff_to")}: ${esc(c.siu.by || "")}</b></p>`}</div>`
+      : c.siu_linked ? `<div class="pending"><b>${ic("alert")} ${tr("siu_linked_t").replace("{c}", c.siu_linked.from)}</b>
+          <p class="muted">${tr("siu_linked_dont")}</p>
+          ${c.siu_linked.hold_payment ? `<p>${ic("alert")} <b>${tr("siu_pay_held")}</b>${c.siu_linked.hold_payment.reason ? `: ${esc(c.siu_linked.hold_payment.reason)}` : ""}</p>
+              ${can("approve") ? "" : `<p class="canned">“${esc(tr("siu_pay_script"))}”</p>`}
+              ${can("approve") && c.siu_linked.hold_payment.by !== me.user ? `<button type="button" onclick="siuReleasePayment()">${tr("siu_release_pay")}…</button>` : ""}`
+            : can("approve") ? `<button type="button" onclick="siuHoldPayment()">${tr("siu_hold_pay")}…</button>` : ""}</div>`
+      : (v.documents || []).some(d => (d.flags || []).some(f => f.code === "other_claim_document")) && can("approve")
+        ? `<p class="flag">${ic("alert")} ${tr("siu_hint")} <button type="button" onclick="siu(false)">${tr("siu_refer")}</button></p>` : ""}
+    ${c.pending_decision ? (() => { const p = c.pending_decision, mine = p.by === me.user;
+      return `<div class="pending"><b>${ic("alert")} ${tr("pending_t")}</b>
+        <p><b>${esc(tr("dec_" + p.type))} $${(+p.amount_usd).toFixed(2)}</b> · ${tr("requested_by")} ${esc(p.by)}</p>
+        ${(p.clauses||[]).length ? `<p>${tr("basis")}: ${p.clauses.map(x => `<span class="cl"><code>${esc(x)}</code> ${esc(clauseName(v, x))}</span>`).join(" ")}</p>` : ""}
+        ${(p.lines||[]).map(l => `<p class="muted">${esc(l.merchant || "")}: $${(+l.from).toFixed(2)} → $${(+l.to).toFixed(2)} (${esc(tr("adj_" + l.reason))})</p>`).join("")}
+        <p class="muted">${tr("pending_why")}: ${esc(p.why.map(w => tr("why_" + w) + (w === "partial" ? ` (−$${(p.estimate_usd - p.amount_usd).toFixed(2)})`
+            : w === "deny" ? ` (${+p.estimate_usd > 0 ? tr("deny_of").replace("{x}", `$${(+p.estimate_usd).toFixed(2)}`) : tr("deny_none")})` : w === "over_estimate" ? ` (+$${(p.amount_usd - p.estimate_usd).toFixed(2)})`
+            : w === "open_checks" ? ` (${(v.unresolved || []).length})` : "")).join(", "))}</p>
+        ${(cov.status === "likely_covered" && p.type === "deny") || (cov.status === "likely_not_covered" && p.type !== "deny") ? `<p class="flag">${ic("alert")} ${tr("ai_differs")}</p>` : ""}
+        ${p.basis_check ? `<p class="flag">${ic("alert")} ${esc(tr("basis_check").replace("{clauses}", p.basis_check.clauses.join(", ")).replace("{open}", p.basis_check.open.map(openLabel).join(", ")))}
+          ${can("approve") && p.by !== me.user ? `<button type="button" onclick="returnToInfo()">${tr("return_to_info")}</button>` : ""}</p>` : ""}
+        ${p.reason ? `<p><b>${tr(p.why.includes("open_checks") ? "approved_despite" : "requester_note")}:</b> ${esc(p.reason)}</p>` : ""}${p.note ? `<p class="muted">${tr("msg")}: ${esc(p.note)}</p>` : ""}
+        <p><button class="primary" onclick="confirmDecision(true)" ${mine || !can("confirm") ? `disabled title="${esc(tr(mine ? "not_self" : "noperm"))}"` : ""}>${tr("confirm_dec")}</button>
+          <button onclick="confirmDecision(false)" ${!can("return") ? "disabled" : ""}>${tr("return_dec")}</button>
+          ${mine ? `<small class="muted">${tr("not_self")}</small>` : ""}</p></div>`; })() : ""}
+    ${c.appeal ? (() => { const a = c.appeal, d = c.decision || {}, first = [d.by, d.confirmed_by].includes(me.user);
+      return a.resolved ? `<div class="sumline">${ic("check")} ${tr("appeal_done_" + a.resolved.outcome)} · ${esc(a.resolved.by)} · ${esc(when(a.resolved.at))}</div>`
+        : `<div class="pending"><b>${ic("alert")} ${tr(a.source === "phone" ? "appeal_t_phone" : "appeal_t")}</b><p>${esc(a.text)}</p>
+        ${(() => { const ev = v.documents.filter(x => (x.received_at || "") > (a.at || "~"));  // photos the traveler sent after objecting
+          return ev.length ? `<p class="muted">${tr("appeal_ev").replace("{n}", ev.length)} ${can("view_docs") ? ev.map(x => `<button class="link" onclick="viewDoc('${esc(c.id)}','${esc(x.id)}',null,null)">${ic("image")} ${esc(summary(x))}</button>`).join(" ") : ""}</p>` : ""; })()}
+        ${(d.lines || []).map(l => `<p class="muted">${tr("appeal_line")}: ${esc(l.merchant || "")} $${(+l.from).toFixed(2)} → <b>$${(+l.to).toFixed(2)}</b> (${esc(tr("adj_" + l.reason))})${can("view_docs") ? ` <button class="link" onclick="viewDoc('${esc(c.id)}','${esc(l.doc)}',null,null)">${ic("image")} ${tr("original")}</button>` : ""}</p>`).join("")}
+        <p class="muted">${tr("appeal_reply_by")} ${esc(dueDay(a.reply_by))} · ${tr("appeal_hint")}</p>
+        ${can("appeal_uphold") ? `<p><button onclick="upholdAppeal()" ${first ? `disabled title="${esc(tr("appeal_not_first"))}"` : ""}>${tr("uphold_keep")}</button>
+          <button onclick="const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()===tr('correct')); if (b) { openCorrection(b); document.getElementById('decwrap').scrollIntoView({block:'center'}); }" ${first || !can("correct") ? "disabled" : ""}>${tr("uphold_change")}</button>
+          ${first ? `<small class="muted">${tr("appeal_not_first")}</small>` : ""}</p>` : ""}</div>`; })() : ""}
+    ${c.submitted_at ? `<p class="sumline">${tr("submittedAt")} ${esc(when(c.submitted_at))}${v.due ? ` · <b>${tr(v.due.kind === "pay" ? "dueAt" : "checkBy")} ${esc(dueDay(v.due.date))}</b>` : ""}${(c.claim_form||{}).bank_reset ? ` · <b class="warn">${ic("alert")} ${tr("bank_pending")}</b> (${tr("was")} ${esc((c.claim_form.previous||{}).bank)} •••${esc((c.claim_form.previous||{}).account_last4)})`
+      : (c.claim_form||{}).account_last4 ? ` · ${tr("payto")} ${esc(c.claim_form.bank)} •••${esc(c.claim_form.account_last4)} (${esc(c.claim_form.holder || "")})` : ""}
+      ${((c.claim_form||{}).declared||{}).asked ? (() => { const d = c.claim_form.declared, any = d.other_insurance || d.airline_paid;
+        return `<br>${any ? `<b class="warn">${ic("alert")}` : "<span>"} ${tr("dup")}: ${[d.other_insurance ? tr("dup_ins_yes") : tr("dup_ins_no"), d.airline_paid ? tr("dup_air_yes") : tr("dup_air_no")].join(" · ")} (${tr("declared")})${d.detail ? ` — ${esc(d.detail)}` : ""}${any ? "</b>" : "</span>"}`; })() : ""}</p>` : ""}
+    ${can("approve") ? "" : supportCard(v)}
+    <div class="grid">
+      <div class="card"><h3>${tr("coverage")}</h3>${cov.status ? chip(cov.status) : `<span class="muted">${tr("notyet")}</span>`}
+        ${cov.status && ((v.unresolved || []).length || Object.values(v.checklist).some(x => !x.done)) ? `<span class="chip collecting">${esc(STATUS[lang].docs_pending)}</span>` : ""}
+        ${(cov.cited_clauses||[]).length ? `<div class="basis"><b>${tr("basis")}</b>${(cov.cited_clauses||[]).map(x => `<span class="cl"><code>${esc(x)}</code> ${esc(clauseName(v, x))}</span>`).join("")}</div>` : ""}
+        ${(cov.covered_expenses||[]).length ? `<div><b>${tr("covered")}</b>${list(cov.covered_expenses)}</div>` : ""}
+        ${(cov.not_covered_expenses||[]).length ? `<div><b>${tr("notcovered")}</b>${list(cov.not_covered_expenses)}</div>` : ""}
+        ${claimFlags.map(flagLine).join("")}
+        <p class="muted">${tr("guidance")}</p></div>
+      <div class="card"><h3>${tr("checklist")}</h3>${checks}</div>
+      ${estCard(v.estimate)}
+      <div class="card wide"><h3>${tr("documents")}</h3>
+        <table><tr><th>${tr("type")}</th><th>${tr("via")}</th><th>${tr("extracted")}</th><th>${tr("result")}</th></tr>${docs || `<tr><td colspan=4 class="muted">${tr("nodocs")}</td></tr>`}</table></div>
+      <div class="card"><h3>${tr("conversation")}</h3><div class="msgs">${msgs}</div></div>
+      <div class="card act"><h3>${tr(can("approve") ? "action" : "memo_t")}</h3>
+        ${can("approve") ? `<label for="msg">${ic("mail")} ${tr("msg")}</label><textarea id="msg"></textarea><div class="help">${tr("msg_help")}</div>` : ""}
+        <div ${can("approve") ? "" : "hidden"}>
+        ${c.decision ? `<div class="curdec"><small>${tr("current_dec")}</small><b>${esc(tr("dec_" + c.decision.type))} $${(+c.decision.amount_usd).toFixed(2)}</b>
+          <span class="muted">${(c.decision.clauses||[]).map(esc).join(", ")} · ${esc(c.decision.by)}${c.decision.confirmed_by ? ` → ${esc(c.decision.confirmed_by)}` : ""}</span></div>` : ""}
+        <div class="decide" ${c.decision ? 'hidden id="decwrap"' : ""}>
+          <label for="amt">${tr("payamt")}</label>
+          <div class="amt"><span>$</span><input id="amt" type="number" min="0" step="0.01" value="${(+(v.estimate||{}).estimate_usd || 0).toFixed(2)}" oninput="decideHint()">
+            <small id="amthint" class="muted">${tr("amount_est")} $${(+(v.estimate||{}).estimate_usd || 0).toFixed(2)}</small></div>
+          <details id="cls"><summary>${tr("basis_pick")}</summary>${(v.decision_clauses||[]).map(x => `<label class="clp"><input type="checkbox" value="${esc(x.id)}"> <code>${esc(x.id)}</code> ${esc((x.names || {})[lang] || x.name)}</label>`).join("")}</details>
+        </div>
+        ${c.decision ? `<p id="corrbtns" hidden><button class="primary" onclick="act('correct')" ${dis("correct")}>${tr("correct_send")}</button>
+            <button onclick="act('correct_deny')" class="danger" ${dis("correct")}>${tr("correct_deny")}</button></p>
+          <p><button onclick="openCorrection(this)" ${dis("correct")}>${tr("correct")}</button></p>
+          <p class="muted correct-help">${tr("correct_help")}</p>`
+          : `<p><button class="primary" onclick="act('approve')" ${dis("approve")}>${tr("approve")}</button> <button onclick="act('request_info')" ${dis("request_info")}>${tr("request")}</button>
+          <button class="danger" onclick="act('deny')" ${dis("deny")}>${tr("deny")}</button></p>`}</div>
+        <label for="memo">${ic("lock")} ${tr("memo")}</label><textarea id="memo"></textarea><div class="help">${tr("memo_help")}</div>
+        <p><button onclick="act('note')" ${dis("note")}>${tr("savememo")}</button></p>
+        ${v.actions.map(a=>`<div class="log">${esc(when(a.at))} · <b>${esc(a.reviewer)}</b> · ${esc((T[lang].acts||T.en.acts)[a.type] || a.type)}${a.detail && a.detail.topic ? ` — ${esc(tr("ct_" + a.detail.topic))} · ${esc(tr("cr_" + a.detail.result))}` : ""}${a.note ? ` — ${esc(a.note)}` : ""}${a.reason ? `<br>${ic("alert")} ${tr(a.type === "approve" ? "approved_despite" : "identity")}: ${esc(a.reason)}` : ""}</div>`).join("")}</div>
+      ${can("approve") ? supportCard(v) : ""}
+    </div>`;
+  if (c.siu)  // held for SIU: anything that would reach the traveler or decide is off, and says why (the server refuses too)
+    document.querySelectorAll("#detail button").forEach(b => {
+      const on = b.getAttribute("onclick") || "";
+      if (/act\('(message|resend_link|bank_correction|request_info|approve|deny)'\)|contactDlg|openCorrection|canned\(/.test(on)
+          && !(c.siu.outcome && /act\('deny'\)/.test(on))) { b.disabled = true; b.title = tr("siu_hold_err"); } });
+}
+// One dialog for typed input (no window.prompt): Esc does not lose what was typed down, errors show in place,
+// and `submit` returns an error message to keep the dialog open (server refusals included).
+const dlgDrafts = {};
+// In-page replacements for alert / confirm / prompt: same questions, but inside the page (no browser chrome or
+// address bar on screen) and in the dashboard's language. confirm/prompt resolve to the answer.
+function uiDialog(msg, mode) {
+  const d = document.getElementById("ud"), i = document.getElementById("udi"), ok = document.getElementById("udok"), no = document.getElementById("udno");
+  document.getElementById("udm").textContent = msg;
+  i.hidden = mode !== "prompt"; i.value = "";
+  no.hidden = mode === "alert"; no.textContent = tr("cancel"); ok.textContent = tr("confirm_ok");
+  return new Promise(res => {
+    const done = v => { d.onclose = null; d.close(); res(v); };
+    ok.onclick = () => done(mode === "prompt" ? i.value : true);
+    no.onclick = () => done(mode === "prompt" ? null : false);
+    d.onclose = () => res(mode === "prompt" ? null : false);  // Esc
+    d.showModal(); (mode === "prompt" ? i : ok).focus();
+  });
+}
+const uiAlert = msg => uiDialog(msg, "alert"), uiConfirm = msg => uiDialog(msg, "confirm"), uiPrompt = msg => uiDialog(msg, "prompt");
+function formDlg({key, title, fields, preview, ok, submit}) {
+  const d = document.getElementById("gd"), err = document.getElementById("gderr");
+  document.getElementById("gdt").textContent = title;
+  document.getElementById("gdb").innerHTML = fields.map(f => `<label><span>${esc(f.label)}</span>${f.options
+    ? `<select id="gf_${f.id}"><option value="">${tr("ct_pick")}</option>${f.options.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join("")}</select>`
+    : f.rows ? `<textarea id="gf_${f.id}" rows="${f.rows}" placeholder="${esc(f.ph || "")}"></textarea>` : `<input id="gf_${f.id}" type="${f.type || "text"}" placeholder="${esc(f.ph || "")}">`}</label>`).join("")
+    + (preview ? `<small class="muted">${tr("dlg_preview")}</small><div class="pv" id="gdpv"></div>` : "") + (fields.note ? `<p class="muted">${esc(fields.note)}</p>` : "");
+  const val = () => Object.fromEntries(fields.map(f => [f.id, document.getElementById("gf_" + f.id).value.trim()]));
+  fields.forEach(f => { const el = document.getElementById("gf_" + f.id); el.value = (dlgDrafts[key] || {})[f.id] || ""; });
+  const upd = () => { dlgDrafts[key] = val(); err.textContent = ""; if (preview) document.getElementById("gdpv").textContent = preview(val()); };
+  d.oninput = upd; upd();
+  const go = document.getElementById("gdgo"); go.textContent = ok || tr("save"); go.disabled = false;
+  document.getElementById("gdno").textContent = tr("cancel");
+  document.getElementById("gdno").onclick = () => d.close();  // the draft stays for the next open
+  go.onclick = async () => { go.disabled = true; const e = await submit(val()); go.disabled = false;
+    if (e) { err.textContent = e; return; } delete dlgDrafts[key]; d.close(); };
+  d.showModal(); if (fields.length) document.getElementById("gf_" + fields[0].id).focus();
+}
+async function postAction(body) {  // the error text to show in the dialog, or "" when done
+  const r = await fetch(`/api/claims/${current}/actions`, {method:"POST", headers:hdrs(), body:JSON.stringify(body)});
+  if (r.ok) { openClaim(current); loadList(); return ""; }
+  const e = await r.json().catch(() => ({}));
+  if (r.status === 403) return tr("noperm");
+  if (r.status === 422) return tr("banned").replace("{p}", e.phrase);
+  if (e.error === "siu_hold") return tr("siu_hold_err");
+  if (e.error === "second_person_required") return tr(String(e.detail || "").includes("referred") ? "siu_not_self" : "appeal_not_first");
+  if (e.error === "siu_outcome_required") return tr("siu_outcome_need");
+  if (e.error === "recent_contact_change") return tr("recent_contact_change");
+  if (String(e.error || e.detail || "").includes("identity")) return tr("identity_checks_needed");
+  return ({appeal_answer_needs_reason: tr("too_short").replace("{n}", 10), appeal_needs_text: tr("too_short").replace("{n}", 5),
+           phone: tr("bad_phone"), email: tr("bad_email"), phone_or_email: tr("need_contact")})[e.error] || e.error || "error";
+}
+function upholdAppeal() {  // a new reviewer keeps the decision and says why; the traveler sees the reply before it goes
+  const d0 = currentView.claim.decision || {}, ls = d0.lines || [];
+  const lineTxt = ls.map(l => `${l.merchant || ""} $${(+l.from).toFixed(2)}→$${(+l.to).toFixed(2)} (${tr("adj_" + l.reason)}, ${(d0.clauses || []).join(", ")})`).join("; ");
+  if (!dlgDrafts["uphold:" + current]) dlgDrafts["uphold:" + current] = {note: tr("uphold_tpl").replace("{lines}", lineTxt || "-")};
+  formDlg({key: "uphold:" + current, title: tr("dlg_uphold_t"), ok: tr("send"),
+    fields: Object.assign([{id: "note", label: tr("appeal_uphold_why"), rows: 4}],
+      {note: `${tr("uphold_claim")}: “${(currentView.claim.appeal || {}).text || ""}”`}),
+    preview: x => ((T[(currentView.traveler || {}).locale] || T[lang]).upheld_preview).replace("{note}", (() => { const m = (x.note || "").match(/:\s*$/);  // nothing written after "확인한 내용:" yet
+      return m ? x.note.replace(/:\s*$/, ": " + tr("uphold_ph")) : x.note ? (/[.!?。]$/.test(x.note) ? x.note : x.note + ".") : "…"; })()).replace("{phone}", (currentView.insurer || {}).phone || ""),
+    submit: x => /:\s*$/.test(x.note) || (x.note.split(/:\s*/).pop() || "").trim().length < 10 ? tr("uphold_fill") : x.note.length < 10 ? tr("too_short").replace("{n}", 10) : postAction({action: "appeal_uphold", note: x.note})});
+}
+async function appealByPhone() {  // the traveler objects on the phone: record it for them, after one identity check
+  const how = await idCheck(1); if (!how) return;
+  formDlg({key: "phoneappeal:" + current, title: tr("dlg_phone_appeal_t"), ok: tr("save"),
+    fields: [{id: "note", label: tr("appeal_phone_text"), rows: 5}],
+    submit: x => x.note.length < 5 ? tr("too_short").replace("{n}", 5) : postAction({action: "appeal_by_phone", ...how, note: x.note})});
+}
+function openCorrection(btn) {  // start from the decision in force, not the automatic estimate
+  const dec = currentView.claim.decision || {};
+  document.getElementById("decwrap").hidden = false; document.getElementById("corrbtns").hidden = false; btn.hidden = true;
+  document.getElementById("amt").value = (+dec.amount_usd || 0).toFixed(2);
+  document.querySelectorAll("#cls input").forEach(x => x.checked = (dec.clauses || []).includes(x.value));
+  decideHint();
+}
+async function confirmDecision(accept) {
+  if (!accept) return formDlg({key: "return:" + current, title: tr("dlg_return_t"), ok: tr("return_dec"),
+    fields: [{id: "note", label: tr("return_why"), rows: 3}],
+    submit: async x => { if (!x.note) return tr("too_short").replace("{n}", 1);
+      const r = await fetch(`/api/claims/${current}/actions`, {method:"POST", headers:hdrs(),
+        body:JSON.stringify({action: "return", note: x.note, pid: (currentView.claim.pending_decision || {}).pid})});
+      if (r.status === 409) { openClaim(current); return tr("pending_changed"); }
+      if (!r.ok) return tr("noperm"); openClaim(current); return ""; }});
+  const note = "", pd = currentView.claim.pending_decision || {};
+  let override = "";
+  if (accept && pd.basis_check) {  // confirming past the basis warning: why (kept in the audit trail as an override)
+    override = (await uiPrompt(tr("basis_override_q")) || "").trim(); if (!override) return; }
+  else if (accept && !await uiConfirm(tr("confirm_dec_q"))) return;
+  const r = await fetch(`/api/claims/${current}/actions`, {method:"POST", headers:hdrs(),
+                                                           body:JSON.stringify({action: accept ? "confirm" : "return", note, override, pid: pd.pid})});
+  if (r.status === 409) { const e = (await r.json()).error; uiAlert(tr(e === "pending_changed" ? "pending_changed" : "not_self")); return openClaim(current); }
+  if (r.status === 403) return uiAlert(tr("noperm"));
+  openClaim(current);
+}
+function siu(clear) {  // hold for the special investigation unit (nothing goes to the traveler), or record SIU's conclusion
+  if (clear) return formDlg({key: "siuclear:" + current, title: tr("siu_clear"), ok: tr("siu_clear"),
+    fields: [{id: "outcome", label: tr("siu_outcome"), options: ["no_fraud", "fraud_confirmed", "referred_to_police"].map(k => [k, tr("siu_o_" + k)])},
+             {id: "reason", label: tr("siu_clear_q"), rows: 3}],
+    submit: async x => { if (!x.outcome) return tr("siu_outcome_need"); if (!x.reason) return tr("too_short").replace("{n}", 1);
+      const e = await postAction({action: "siu_clear", outcome: x.outcome, reason: x.reason}); return e; }});
+  formDlg({key: "siu:" + current, title: tr("siu_refer"), ok: tr("siu_refer"),
+    fields: [{id: "kind", label: tr("siu_kind"), options: ["document_reuse", "forged_document", "duplicate_claim"].map(k => [k, tr("siu_k_" + k)])},
+             {id: "reason", label: tr("siu_q"), rows: 4}],
+    submit: async x => { if (!x.kind) return tr("siu_kind_need"); if (!x.reason) return tr("too_short").replace("{n}", 1);
+      return postAction({action: "siu", kind: x.kind, reason: x.reason}); }});
+}
+function siuReleasePayment() {  // a separate act, by someone other than who held it
+  formDlg({key: "siurel:" + current, title: tr("siu_release_pay"), ok: tr("siu_release_pay"), fields: [{id: "reason", label: tr("siu_release_q"), rows: 3}],
+    submit: async x => x.reason ? postAction({action: "siu_release_payment", reason: x.reason}) : tr("too_short").replace("{n}", 1)});
+}
+function siuHoldPayment() {  // a linked claim: hold its payment too, with a reason
+  formDlg({key: "siupay:" + current, title: tr("siu_hold_pay"), ok: tr("siu_hold_pay"), fields: [{id: "reason", label: tr("siu_hold_pay_q"), rows: 3}],
+    submit: async x => x.reason ? postAction({action: "siu_hold_payment", reason: x.reason}) : tr("too_short").replace("{n}", 1)});
+}
+async function returnToInfo() {  // the denial goes back, and the documents are asked for instead (CL-1)
+  const r = await fetch(`/api/claims/${current}/actions`, {method:"POST", headers:hdrs(),
+    body:JSON.stringify({action: "return", note: tr("return_to_info_note"), pid: (currentView.claim.pending_decision || {}).pid})});
+  if (!r.ok) return uiAlert(tr(r.status === 409 ? "pending_changed" : "noperm"));
+  await Promise.all([openClaim(current), loadList()]);
+  const m = document.getElementById("msg");
+  if (m) { m.value = tr("ask_docs_tpl"); m.scrollIntoView({block: "center"}); m.focus(); }
+}
+const ADJ = ["excluded_item", "airline_paid", "other_insurance", "over_reasonable", "other"];
+let adjTimer;
+function currentAdjust() {  // only receipts the reviewer lowered
+  const out = {};
+  document.querySelectorAll("input.adj").forEach(i => { const sel = document.querySelector(`select.adjr[data-doc="${i.dataset.doc}"]`);
+    const low = +i.value < +i.dataset.max; sel.hidden = !low; if (low) out[i.dataset.doc] = {usd: +i.value, reason: sel.value}; });
+  return out;
+}
+function adjChanged() {  // recompute the amount to pay with the day and trip limits on the server
+  clearTimeout(adjTimer);
+  adjTimer = setTimeout(async () => {
+    const adjust = currentAdjust();
+    const e = await api(`/api/claims/${current}/estimate`, {method:"POST", body:JSON.stringify({adjust})});
+    if (e.error) return;
+    document.getElementById("amt").value = (+e.estimate_usd).toFixed(2); decideHint();
+    const base = +((currentView.estimate || {}).estimate_usd || 0), sum = document.getElementById("adjsum");
+    sum.hidden = !Object.keys(adjust).length;
+    sum.innerHTML = `<b>${tr("adjusted")}: $${(+e.estimate_usd).toFixed(2)}</b> (−$${(base - e.estimate_usd).toFixed(2)})`;
+  }, 250);
+}
+function decideHint() {  // say "partial" as soon as the amount drops below the estimate
+  const est = +((currentView.estimate||{}).estimate_usd || 0), amt = +document.getElementById("amt").value;
+  document.getElementById("amthint").textContent = amt < est ? tr("partial_hint") : `${tr("amount_est")} $${est.toFixed(2)}`;
+  if (amt < est) document.getElementById("cls").open = true;
+}
+// Identity check as ticks, not free text: at least two for money or contact changes, one to resend the chat link
+function idCheck(min) {
+  const d = document.getElementById("idd");
+  document.getElementById("idt").textContent = tr("idcheck_t").replace("{n}", min);
+  document.getElementById("idl").innerHTML = ["dob", "policy", "booking", "callback"].map(k => `<label><input type="checkbox" value="${k}"> ${tr("id_" + k)}</label>`).join("")
+    + `<input id="ido" placeholder="${esc(tr("id_other"))}">`;
+  const go = document.getElementById("idgo"), count = () => d.querySelectorAll("#idl input:checked").length + (document.getElementById("ido").value.trim().length >= 4 ? 1 : 0);
+  go.textContent = tr("id_ok"); document.getElementById("idno").textContent = tr("cancel");
+  go.disabled = true; d.oninput = () => go.disabled = count() < min;
+  d.showModal();
+  return new Promise(res => {
+    go.onclick = () => { const checks = [...d.querySelectorAll("#idl input:checked")].map(x => x.value), o = document.getElementById("ido").value.trim();
+      d.close(); res({checks, reason: o}); };  // the server counts the ticks again
+    document.getElementById("idno").onclick = () => { d.close(); res(null); };
+  });
+}
+function takeClaim() {  // own or a team queue: take it; someone else's: say why first (the server asks for it too)
+  const owner = currentView.claim.assignee || "";
+  if (!owner || owner === me.user || owner.startsWith("team:")) return staffAct("assign");
+  formDlg({key: "takeover:" + current, title: tr("takeover_t"), ok: tr("take"),
+    fields: [{id: "reason", label: tr("takeover_why").replace("{owner}", owner), rows: 2}],
+    submit: x => x.reason.length < 5 ? tr("too_short").replace("{n}", 5) : postAction({action: "assign", reason: x.reason})});
+}
+async function staffAct(action, body = {}) {
+  const r = await fetch(`/api/claims/${current}/actions`, {method:"POST", headers:hdrs(), body:JSON.stringify({action, ...body})});
+  if (r.status === 403) return uiAlert(tr("noperm"));
+  if (!r.ok) return uiAlert((await r.json()).error || "error");
+  openClaim(current); loadList();
+}
+async function handoffDlg() {  // one form: colleague from the directory, what to do, quick deadlines (KST)
+  const d = document.getElementById("hod"), staff = (await api("/api/staff")).staff || [];
+  const teams = ["team:reviewers", "team:agents"];
+  const sel = document.getElementById("hto"); sel.innerHTML = teams.map(u => `<option value="${u}">${esc(who(u))}</option>`).join("")
+    + staff.filter(u => u !== me.user).map(u => `<option>${esc(u)}</option>`).join("");
+  document.getElementById("herr").textContent = "";
+  const kst = ms => new Date(ms + 9 * 3600e3).toISOString().slice(0, 16);
+  const today18 = new Date(); const t = new Date(Date.now() + 9 * 3600e3); t.setUTCHours(18, 0, 0, 0);
+  const tomorrow10 = new Date(t); do tomorrow10.setUTCDate(tomorrow10.getUTCDate() + 1); while (tomorrow10.getUTCDay() % 6 === 0); tomorrow10.setUTCHours(10);  // next business day
+  const eodPassed = t.getTime() - 9 * 3600e3 <= Date.now();  // after 18:00 KST, "today 18:00" would be a deadline in the past
+  document.getElementById("hquick").innerHTML = [["h1", kst(Date.now() + 3600e3)], ...(eodPassed ? [] : [["eod", t.toISOString().slice(0, 16)]]), ["tmr", tomorrow10.toISOString().slice(0, 16)]]
+    .map(([k, v]) => `<button type="button" data-v="${v}">${tr("due_" + k)}</button>`).join("");
+  document.getElementById("hdue").min = kst(Date.now());
+  document.getElementById("hquick").onclick = e => { const b = e.target.closest("button"); if (b) document.getElementById("hdue").value = b.dataset.v; };
+  document.getElementById("hnote").value = ""; document.getElementById("hdue").value = kst(Date.now() + 3600e3);
+  const owner = currentView.claim.assignee || "", other = owner && !owner.startsWith("team:") && owner !== me.user;  // admins too: the owner sees why
+  const rw = document.getElementById("hrw"); rw.hidden = !other;  // someone else's claim: say why it changes hands
+  document.getElementById("hrl").textContent = tr("handoff_reason").replace("{owner}", owner); document.getElementById("hreason").value = "";
+  d.showModal();
+  document.getElementById("hno").onclick = () => d.close();
+  document.getElementById("hgo").onclick = () => {
+    const to = sel.value, note = document.getElementById("hnote").value.trim(), due = document.getElementById("hdue").value;
+    const reason = document.getElementById("hreason").value.trim();
+    if (!to || !note) return;
+    if (other && reason.length < 5) return document.getElementById("herr").textContent = tr("too_short").replace("{n}", 5);
+    if (due && new Date(due + ":00+09:00").getTime() < Date.now()) return document.getElementById("herr").textContent = tr("due_past");
+    d.close(); staffAct("handoff", {to, note, reason, due: due ? new Date(due + ":00+09:00").toISOString() : null});
+  };
+}
+async function callLog() {  // one line per call: what it was about, how it ended; a promised call back gets a time
+  const d = document.getElementById("cld"), err = document.getElementById("cerr"), cb = document.getElementById("cbat");
+  const kst = ms => new Date(ms + 9 * 3600e3).toISOString().slice(0, 16);
+  const guess = (currentView.claim.callback || {}).topic_guess ? currentView.claim.callback.topic : null;  // the guessed topic first, not selected
+  document.getElementById("ctopic").innerHTML = `<option value="">${tr("ct_pick")}</option>` + [guess, ...["smishing", "pay_date", "why_less", "objection", "bank", "contact", "documents", "other"].filter(k => k !== guess)].filter(Boolean)
+    .map(k => `<option value="${k}">${tr("ct_" + k)}${k === guess ? ` (${tr("topic_guess")})` : ""}</option>`).join("");
+  document.getElementById("cres").innerHTML = ["answered", "handed_off", "call_back"].map(k => `<option value="${k}">${tr("cr_" + k)}</option>`).join("");
+  document.getElementById("cnote").value = ""; err.textContent = ""; cb.min = kst(Date.now());
+  // business hours: Mon–Fri 09:00–18:00 KST (public holidays: the insurer's own calendar, not modelled here)
+  const k = new Date(Date.now() + 9 * 3600e3), h = k.getUTCHours(), wd = d => d.getUTCDay() % 6 !== 0;
+  const t10 = new Date(k); t10.setUTCHours(10, 0, 0, 0);
+  if (!(wd(k) && h < 9)) do t10.setUTCDate(t10.getUTCDate() + 1); while (!wd(t10));  // the next business day, or today if before opening
+  // the next slot inside business hours AND the traveler's preferred window (kept from the last call-back)
+  const WIN = {any: [9, 18], am: [9, 12], pm: [13, 18]}, pref = document.getElementById("cbpref");
+  pref.innerHTML = ["any", "am", "pm"].map(x => `<option value="${x}">${tr("pref_" + x)}</option>`).join("");
+  pref.value = (currentView.claim.callback || {}).pref || "any";
+  // the window is in the traveler's own time (UTC offset kept when they asked from the chat; Korea time otherwise)
+  const asked = currentView.claim.callback || {}, tz = asked.tz_offset ?? 540;
+  // first half hour from `from` (ms) inside the traveler's window and our hours; no overlap: the start of their window
+  const slot = (from = Date.now()) => { const [a, b] = WIN[pref.value], t = new Date(from + 9 * 3600e3); t.setUTCMinutes(t.getUTCMinutes() <= 30 ? 30 : 60, 0, 0);
+    let mine = null;
+    for (let i = 0; i < 7 * 48; i++, t.setUTCMinutes(t.getUTCMinutes() + 30)) {
+      const lh = new Date(t.getTime() + (tz - 540) * 60e3).getUTCHours(), hh = t.getUTCHours();
+      if (lh < a || lh >= b) continue;
+      if (wd(t) && hh >= 9 && hh < 18) return t.toISOString().slice(0, 16);
+      mine = mine || t.toISOString().slice(0, 16); }
+    return mine || t10.toISOString().slice(0, 16); };
+  cb.value = slot();
+  document.getElementById("cbtz").textContent = tz === 540 ? "" : tr("cb_tz").replace("{off}", (tz < 0 ? "−" : "+") + Math.floor(Math.abs(tz) / 60) + (Math.abs(tz) % 60 ? ":" + String(Math.abs(tz) % 60).padStart(2, "0") : ""));
+  const q = document.getElementById("cbq"), warn = document.getElementById("cbwarn"), their = document.getElementById("cbtheir");
+  // quick choices are "the first fitting slot from …": in 30 min, in an hour, next business day (both clocks agree)
+  const quick = () => { const nb = Date.parse(t10.toISOString().slice(0, 10) + "T00:00:00+09:00");
+    const opts = [["q30", slot(Date.now() + 1800e3)], ["q60", slot(Date.now() + 3600e3)], ["qtmr", slot(Math.max(nb, Date.now()))]];
+    // the same time three times (a far time zone has one short overlap a day): one button, "the first time that fits"
+    const uniq = opts.filter(([, v], i) => opts.findIndex(o => o[1] === v) === i).map(([k, v]) => [opts.filter(o => o[1] === v).length > 1 ? "first" : k, v]);
+    q.innerHTML = uniq
+      .map(([k, v]) => `<button type="button" data-v="${v}">${tr(tz === 540 ? "cb_" + k : "cb_" + k + "_fit")}${tz === 540 ? "" : ` <small>${esc(localAt(new Date(Date.parse(v + ":00Z") - 9 * 3600e3).toISOString(), tz))}</small>`}</button>`).join(""); };
+  pref.onchange = () => { cb.value = slot(); quick(); off(); };
+  quick();
+  const off = () => { const hh = +cb.value.slice(11, 13), day = new Date(cb.value.slice(0, 10) + "T00:00:00Z").getUTCDay();
+    // two checks: our business hours (KST), and the traveler's own window on their clock
+    const utc = new Date(Date.parse(cb.value + ":00Z") - 9 * 3600e3).toISOString(), lh = new Date(Date.parse(utc) + tz * 60e3).getUTCHours();
+    const [a, b] = WIN[pref.value], ours = hh >= 9 && hh < 18 && day % 6 !== 0, theirs = lh >= a && lh < b;
+    warn.hidden = !cb.value || (ours && theirs);
+    warn.textContent = [!ours && "⚠ " + tr("cb_offhours"),
+      !theirs && "⚠ " + (tz !== 540 ? tr("cb_their_off").replace("{t}", localAt(utc, tz)) : tr("cb_pref_off").replace("{w}", tr("pref_" + pref.value)))].filter(Boolean).join(" ");
+    // always: the same moment on the traveler's clock, for "그쪽 시간으로 몇 시" on the phone
+    their.hidden = !cb.value || tz === 540; if (!their.hidden) their.textContent = "= " + tr("cb_their").replace("{t}", localAt(utc, tz)); };
+  q.onclick = e => { const b = e.target.closest("button"); if (b) { cb.value = b.dataset.v; off(); } }; cb.oninput = off;
+  const open = currentView.claim.callback, dw = document.getElementById("cbdw"), done = document.getElementById("cbdone");
+  dw.hidden = !open; done.checked = false;
+  if (open) document.getElementById("cbdl").textContent = tr("cb_done").replace("{when}", shortWhen(open.due));
+  document.getElementById("ctopic").onchange = () => { if (open) done.checked = document.getElementById("ctopic").value === open.topic || open.by === "traveler"; };
+  const res = document.getElementById("cres"); res.onchange = () => { const cbk = res.value === "call_back"; document.getElementById("cbw").hidden = document.getElementById("cbpw").hidden = q.hidden = !cbk; dw.hidden = !open || cbk;  // a new promise replaces the old one
+    if (cbk) off(); else warn.hidden = true; }; res.onchange();
+  d.showModal();
+  document.getElementById("cno").onclick = () => d.close();
+  document.getElementById("cgo").onclick = async () => {
+    const to = document.getElementById("ctopic").value, due = res.value, note = document.getElementById("cnote").value.trim();
+    if (!to) return err.textContent = tr("call_topic_need");  // no default topic: an unread default skews the statistics
+    let callback_at = null;
+    if (due === "call_back") { if (!cb.value || new Date(cb.value + ":00+09:00").getTime() < Date.now()) return err.textContent = tr("callback_need");
+      callback_at = new Date(cb.value + ":00+09:00").toISOString(); }
+    const e = await postAction({action: "call_log", to, due, note, callback_at, callback_done: due !== "call_back" && document.getElementById("cbdone").checked, callback_pref: document.getElementById("cbpref").value});
+    if (e) return err.textContent = e === "callback_past" ? tr("callback_need") : e;
+    d.close(); };
+}
+// Canned replies with the claim's own facts filled in; they pass the same wording check as anything typed
+const dayLabel = iso => { const d = new Date(iso + "T00:00:00");  // "10/14(수)" / "Wed, Oct 14", outside any one screen
+  return lang === "ko" ? `${d.getMonth() + 1}/${d.getDate()}(${"일월화수목금토"[d.getDay()]})` : d.toLocaleDateString("en-US", {weekday: "short", month: "short", day: "numeric"}); };
+function canned(key) {  // fitted to where this claim stands: an open objection, the actual lines taken off
+  const v = currentView, c = v.claim, ins = (v.insurer || {}), due = v.due ? dayLabel(v.due.date) : "", dec = c.decision, ap = c.appeal && !c.appeal.resolved ? c.appeal : null;
+  const lines = dec ? (dec.lines || []).map(l => `${l.merchant || ""} $${(+l.from).toFixed(2)} → $${(+l.to).toFixed(2)} (${tr("adj_" + l.reason)}). `).join("") : "";
+  const T2 = {
+    smishing: ((v.sender || {}).sms ? tr("cn_smishing").replace("{sender}", v.sender.sms) : tr("cn_smishing_ns")).replace("{phone}", ins.phone || ""),  // no sender number set: no empty blank
+    pay_date: ap && due ? tr("cn_pay_date_appeal").replace("{reply}", dayLabel(ap.reply_by)).replace("{date}", due) : due ? tr("cn_pay_date").replace("{date}", due) : tr("cn_pay_none"),
+    why_less: dec && dec.type !== "full" ? tr("cn_why_less_lines").replace("{result}", `${tr("dec_" + dec.type)} $${(+dec.amount_usd).toFixed(2)}`).replace("{lines}", lines)
+      .replace("{clauses}", (dec.clauses || []).map(x => `${x} ${clauseName(v, x)}`.trim()).join(", ") || "-") : tr("cn_why_less"),
+    objection: tr("cn_objection"), bank_fix: tr("cn_bank_fix"), contact: tr("cn_contact"), own_docs: tr("cn_own_docs"), documents: tr("cn_documents").replace("{items}", Object.entries(v.checklist || {}).filter(([, x]) => !x.done).map(([k]) => ITEMS[lang][k] || k).join(", ") || "-"),
+  };
+  const box = document.getElementById("smsg");
+  box.value = T2[key] || "";
+  // "why less" / "pay date" state the decision: the server fills them from the claim (the only way staff words may);
+  // editing the text turns it back into free text, which may not state a decision
+  box.dataset.template = ["why_less", "pay_date"].includes(key) && (key !== "why_less" || (dec && dec.type !== "full")) ? key : "";
+  box.oninput = () => { box.dataset.template = ""; };
+}
+async function contactDlg() {  // two identity checks, then one form; the warning is on the form, not in a third pop-up
+  const how = await idCheck(2); if (!how) return;
+  const fields = [{id: "phone", label: tr("new_phone"), type: "tel", ph: "+82 10-…"}, {id: "email", label: tr("new_email"), type: "email"}];
+  fields.note = tr("contact_warn").replace(/\s*(Continue\?|계속할까요\?)$/, "");
+  formDlg({key: "contact:" + current, title: tr("dlg_contact_t"), ok: tr("save"), fields,
+    submit: x => !x.phone && !x.email ? tr("need_contact") : postAction({action: "contact_update", ...how, ...(x.phone ? {phone: x.phone} : {}), ...(x.email ? {email: x.email} : {})})});
+}
+// an email that went out through Amazon SES: its message id (and attachments), so the delivery can be traced
+const sesId = m => m.channel === "email" && m.provider_id && !/^(email|sim)-/.test(m.provider_id)
+  ? ` · <span class="ses">Amazon SES · ${esc(String(m.provider_id).slice(0, 24))}…${(m.attachments || []).length ? ` · ${tr("attached").replace("{n}", m.attachments.length)}` : ""}</span>` : "";
+async function act(action) {
+  // agents have no reviewer message box: actions that need no text (resend link, bank re-entry) must still work for them
+  const field = action === "note" ? "memo" : action === "message" ? "smsg" : "msg", text = (document.getElementById(field) || {value: ""}).value.trim();
+  if ((action === "request_info" || action === "message") && !text) return uiAlert(tr("needmsg"));
+  if (action === "resend_link" || action === "bank_correction") {  // only after confirming who is on the phone
+    const how = await idCheck(action === "bank_correction" ? 2 : 1);  // who is on the phone comes first
+    if (!how) return;
+    if (action === "bank_correction" && !(await new Promise(res => { const cf = currentView.claim.claim_form || {}, f = [];
+      f.note = tr("bankfix_stop").replace("{acct}", `${cf.bank || ""} •••${cf.account_last4 || ""}${cf.holder ? ` (${cf.holder})` : ""}`) + "\n\n"
+        + tr("bankfix_sms") + "\n“" + ((T[(currentView.traveler || {}).locale] || T[lang]).bankfix_msg) + "”\n\n" + tr("bankfix_note");
+      formDlg({key: "bankfix:" + current, title: tr("bankfix_t"), ok: tr("bankfix"), fields: f, submit: () => { res(true); return ""; }});
+      document.getElementById("gdno").addEventListener("click", () => res(false), {once: true}); }))) return;
+    const r = await fetch(`/api/claims/${current}/actions`, {method:"POST", headers:hdrs(), body:JSON.stringify({action, ...how})});
+    if (r.status === 403) return uiAlert(tr("noperm"));
+    if (r.status === 409) { const e = (await r.json()).error || ""; return uiAlert(tr(e.includes("recent_contact_change") ? "recent_contact_change" : "identity_checks_needed")); }
+    return openClaim(current);
+  }
+  if (action === "note" && !text) return;
+  let reason = "", extra = {};
+  if (action === "correct" || action === "correct_deny") {  // a final decision changes only with a reason and a second reviewer
+    reason = (await uiPrompt(tr("correct_why")) || "").trim(); if (!reason) return;
+    extra = action === "correct_deny" ? {deny: true} : {};
+    action = "correct";
+  }
+  if (action === "approve" || action === "deny" || action === "correct") {  // a decision: amount, and for less than the estimate the clauses + a note
+    const est = +((currentView.estimate||{}).estimate_usd || 0), amt = action === "deny" ? 0 : +document.getElementById("amt").value;
+    const clauses = [...document.querySelectorAll("#cls input:checked")].map(x => x.value);
+    if ((action === "deny" || amt < est) && (!clauses.length || !text)) { document.getElementById("cls").open = true; return uiAlert(tr("need_basis")); }
+    const adjust = action === "deny" ? {} : currentAdjust();
+    const isDeny = action === "deny" || extra.deny;
+    if (!isDeny && amt > est + 0.005 && !reason) { reason = (await uiPrompt(tr("over_why")) || "").trim(); if (!reason) return; }
+    extra = isDeny ? {...extra, clauses} : Object.keys(adjust).length ? {adjust, clauses} : {amount_usd: amt, clauses};
+  }
+  const checks = (currentView.unresolved || []).filter(c => c.startsWith("check:") || c.startsWith("retake:"));
+  if (action === "deny" && checks.length) {  // documents still to check (another name, unreadable): usually ask for them, not deny
+    reason = (await uiPrompt(tr("deny_checks").replace("{n}", checks.length) + "\n- " + checks.map(openLabel).join("\n- ")) || "").trim();
+    if (!reason) return;
+  }
+  if (action === "approve" && (currentView.unresolved || []).length) {  // open checks: say why, it goes to the audit trail
+    reason = (await uiPrompt(tr("approve_reason").replace("{n}", currentView.unresolved.length) + "\n- " + currentView.unresolved.map(openLabel).join("\n- ")) || "").trim();
+    if (!reason) return;
+  }
+  if (action !== "note") {  // anything that reaches the traveler is previewed first
+    const name = (document.querySelector("#detail h2")?.firstChild?.textContent || "").trim();
+    if (!await uiConfirm(tr("confirm_send").replace("{name}", name).replace("{text}", text || tr("empty_msg")))) return;
+  }
+  const r = await fetch(`/api/claims/${current}/actions`, {method:"POST", headers:hdrs(),
+                                                           body:JSON.stringify({action, note:text, reason, ...extra,
+                                                             ...(action === "message" && document.getElementById("smsg")?.dataset.template ? {template: document.getElementById("smsg").dataset.template} : {})})});
+  if (r.status === 403) return uiAlert(tr("noperm"));
+  if (r.status === 422) { const e = await r.json(); return uiAlert(tr(String(e.phrase).startsWith("decision:") ? "decision_free_text" : "banned").replace("{p}", e.phrase.replace(/^decision:/, ""))); }  // keep the text to fix it
+  if (r.status === 409) return uiAlert(tr("approve_reason").replace("{n}", ""));
+  if (r.status === 400) {
+    const err = (await r.json()).error;
+    if (err === "not_submitted") {  // the traveler has not submitted: say why deciding now (audit trail), or ask for documents
+      const why = (await uiPrompt(tr("not_submitted")) || "").trim(); if (!why) return;
+      const r2 = await fetch(`/api/claims/${current}/actions`, {method:"POST", headers:hdrs(), body:JSON.stringify({action, note:text, reason: why, ...extra})});
+      if (!r2.ok) return uiAlert(tr("need_basis"));
+      return openClaim(current);
+    }
+    return uiAlert(tr("need_basis"));
+  }
+  if (r.status === 409) { const e = (await r.clone().json()).error; if (["pending_exists", "already_decided", "pending_changed"].includes(e)) { uiAlert(tr(e)); return openClaim(current); } }
+  if (["approve", "deny", "correct"].includes(action) && r.ok && (await r.clone().json()).pending_decision) uiAlert(tr("sent_for_second"));
+  if (document.getElementById(field)) document.getElementById(field).value = "";
+  openClaim(current);
+}
+async function packet(id) { const w = window.open(); w.document.write(await api(`/api/claims/${id}/packet`)); }
+// Before any bulk SMS: who gets it, on which channel, how many SMS parts, what it costs, and the exact text.
+async function bulkPreview(title, url, body) {
+  const p = await api(url, {method:"POST", body:JSON.stringify(body)});
+  if (p.error) { uiAlert(tr("noperm")); return false; }
+  const d = document.getElementById("bulk"), chs = Object.entries(p.by_channel).map(([c, n]) => `${CH_NAME[lang][c] || c} ${n}`).join(" · ");
+  document.getElementById("bk_t").textContent = title;
+  document.getElementById("bk_b").innerHTML = `<p class="big">${tr("bk_count").replace("{n}", p.count)}</p>
+    <p>${esc(chs || "-")}${p.skipped_not_covered ? ` · ${tr("bk_skipped").replace("{n}", p.skipped_not_covered)}` : ""}</p>
+    <p>${tr("bk_cost").replace("{parts}", p.sms_parts).replace("{usd}", p.cost_usd.toFixed(2)).replace("{krw}", Math.round(p.cost_usd * 1380).toLocaleString())}</p>
+    ${Object.entries(p.samples).map(([l, t]) => `<div class="sample"><small>${l.toUpperCase()}</small>${esc(t)}</div>`).join("")}
+    ${p.needs_second_admin ? `<p class="w">${ic("alert")} ${tr("bk_second")}</p>` : ""}
+    ${me && me.sim_phone && (p.by_channel.sms || p.by_channel.rcs) ? `<p class="hint">${tr("bk_sim")}</p>` : ""}`;
+  const ok = document.getElementById("bk_ok"), go = document.getElementById("bk_go"), reach = p.count - (p.by_channel.none || 0);
+  ok.checked = false; go.disabled = true; ok.onchange = () => go.disabled = !ok.checked || !reach;
+  document.getElementById("bk_ack").textContent = tr("bk_ack").replace("{n}", reach);
+  go.textContent = tr("bk_go").replace("{n}", reach); document.getElementById("bk_no").textContent = tr("cancel");
+  d.showModal();
+  return new Promise(res => { go.onclick = () => { d.close(); res(true); }; document.getElementById("bk_no").onclick = () => { d.close(); res(false); }; });
+}
+// Audit log: who did what to which claim, including who opened it. Admins only; one day at a time; CSV for auditors.
+const AUDIT_ACT = {
+  ko: {siu_payment_released:"연결 청구 지급 보류 해제", callback_change_requested:"여행자 콜백 시간 변경 요청", siu_payment_held:"연결 청구 지급 보류", siu_referred:"SIU 검토 의뢰(보류)", siu_cleared:"SIU 보류 해제", guardrail_skipped:"가드레일 생략(장애)", callback_cancelled:"여행자 전화 요청 취소", bedrock_fallback:"기본 리전 밖 처리", wording_after_send:"발송 후 검출(차단 누락)", callback_requested:"여행자 전화 요청", wording_blocked:"금지 표현 차단(직원)", agent_wording_blocked:"금지 표현 차단(AI 답변)", export_kpi:"운영 지표 내보내기", view_claim:"청구 열람", reviewer_approve:"지급 결정", reviewer_deny:"부지급", reviewer_request_info:"추가 정보 요청", reviewer_note:"내부 메모",
+       support_message:"안내 발송", support_resend_link:"대화 링크 재발송", support_bank_correction:"계좌 재입력 요청", submit:"청구 제출",
+       secure_form:"보안 페이지 제출", bank_corrected:"계좌 변경(고객)", bulk_alert:"결항 알림 일괄 발송", bulk_reminder:"리마인더 일괄 발송",
+       demo_personas:"데모 데이터 생성", view_document:"원본 사진 열람", decision_requested:"결정 요청", decision_confirmed:"결정 확정(2차)", decision_returned:"결정 반려",
+       bulk_requested:"대량 발송 요청", bulk_cancelled:"대량 발송 취소", view_audit:"감사 기록 열람", staff_call_log:"통화 기록", staff_handoff_done:"인계 처리 완료", appeal:"고객 이의 신청", appeal_by_phone:"전화 이의 접수", appeal_upheld:"이의 회신(원결정 유지)", staff_assign:"담당 지정", staff_handoff:"인계", staff_bank_correction_cancel:"계좌 정정 취소", staff_contact_update:"연락처 변경", export_audit:"감사 기록 내려받기",
+       reviewer_confirm:"2차 확정", support_message:"안내 발송", alert_skipped:"알림 제외(담보 없음)", unknown_sender:"알 수 없는 발신자", agent_error:"AI 응답 오류"},
+  en: {bedrock_fallback:"Processed outside the home region", wording_after_send:"Found after sending"}};
+let auditRows = [];
+// One line a person can read: "일부 지급 $100.00 (예상 $122.53) · TD-4 · 확인 reviewer-2" instead of raw JSON
+function auditText(x) {
+  const a = x.after || {}, d = x.decision || a.decision || a, money = v => `$${(+v).toFixed(2)}`;
+  const bits = [];
+  if (d && d.type && "amount_usd" in d) bits.push(`${tr("dec_" + d.type)} ${money(d.amount_usd)}${d.estimate_usd != null ? ` (${tr("amount_est")} ${money(d.estimate_usd)})` : ""}`);
+  if (d && (d.clauses || []).length) bits.push(d.clauses.join(", "));
+  if (a.why) bits.push(`${tr("pending_why")}: ${a.why.map(w => tr("why_" + w)).join(", ")}`);
+  if (a.requested_by) bits.push(`${tr("requested_by")} ${a.requested_by}`);
+  if (x.before && typeof x.before === "string") bits.push(`${STATUS[lang][x.before] || x.before} → ${STATUS[lang][a] || (typeof x.after === "string" ? STATUS[lang][x.after] || x.after : "")}`);
+  if (a.doc) bits.push(`${tr("doc")} ${a.doc}`);
+  if (a.assignee) bits.push(`${tr("owner")} ${a.assignee}`);
+  if (a.topic) bits.push(`${tr("ct_" + a.topic)} · ${tr("cr_" + a.result)}`);
+  if (a.to && x.action !== "bedrock_fallback") bits.push(`→ ${who(a.to)}${a.due ? ` · ${tr("by_when")} ${new Date(a.due).toLocaleString()}` : ""}`);
+  if (a.phone) bits.push(`${tr("new_phone").replace(/\s*\(.*$/, "")} ${a.phone}`);
+  if (a.restored) bits.push(`${tr("payto")} ${a.restored.bank || ""} •••${a.restored.account_last4 || ""}`);
+  if (a.sent != null) bits.push(`${tr("audit_sent")} ${a.sent}`);
+  if (a.count != null) bits.push(`${tr("audit_sent")} ${a.count}`);
+  if (x.identity_check) bits.push(`${tr("identity")}: ${x.identity_check}`);
+  if (x.action === "wording_blocked" || x.action === "agent_wording_blocked" || x.action === "wording_after_send")  // what was stopped, and where
+    bits.push(`“${[a.phrase, ...(a.phrases || [])].filter(Boolean).join(", ")}”${a.where ? ` · ${a.where}` : ""}${a.text ? ` — ${a.text.slice(0, 60)}${a.text.length > 60 ? "…" : ""}` : ""}`);
+  if (x.action === "bedrock_fallback")  // where this claim's data was processed, readable for a compliance report
+    bits.push(tr("fb_detail").replace("{via}", a.processed_via || "").replace("{call}", tr("fb_" + a.call) || a.call || "").replace("{from}", a.from || "").replace("{to}", a.to || ""));
+  if (x.action === "callback_requested" && a.pref)
+    bits.push(cbLocal(a).replace(/^\s*(?:· )?/, "") + (a.due ? ` · ${tr("callback_badge")} ${shortWhen(a.due)}` : ""));
+  if (x.takeover_reason) bits.push(`${tr("takeover_reason")}: ${x.takeover_reason}`);
+  if (x.reason) bits.push(`${tr(x.action === "decision_requested" ? "decision_reason" : x.action === "siu_referred" ? "siu_reason" : "approved_despite")}: ${x.reason}`);
+  if (x.basis_check) bits.push(`⚠ ${tr("basis_flag")}`);
+  if (x.override) bits.push(`⚠ ${tr("basis_override")}: ${x.override}`);
+  if (a.note) bits.push(a.note);
+  return bits.filter(Boolean).join(" · ");
+}
+async function openAudit(day, tz) {
+  current = null; drawList(); tz = tz || localStorage.getItem("auditTz") || "kst";
+  day = day || new Date(Date.now() + (tz === "kst" ? 9 * 3600e3 : 0)).toISOString().slice(0, 10);
+  const r = await api(`/api/audit?date=${day}&tz=${tz}`);
+  if (r.error) return uiAlert(tr("noperm"));
+  auditRows = r.entries.slice().reverse();  // newest first
+  const acts = [...new Set(auditRows.map(x => x.action))];
+  document.getElementById("detail").innerHTML = `<h2 style="margin:.1rem 0">${tr("t_audit")}</h2>
+    <p class="auditbar"><input type="date" id="ad" value="${day}"> <select id="atz"><option value="kst" ${tz === "kst" ? "selected" : ""}>KST</option><option value="utc" ${tz === "utc" ? "selected" : ""}>UTC</option></select> <input id="aq" placeholder="${esc(tr("audit_q"))}">
+      <select id="aa"><option value="">${tr("audit_all")}</option>${acts.map(a => `<option value="${esc(a)}">${esc(AUDIT_ACT[lang][a] || a)}</option>`).join("")}</select>
+      <button id="acsv">CSV ${tr("download")}</button></p>
+    <div class="card wide"><table id="at"></table></div><p class="muted">${tr("audit_note")}</p>`;
+  const draw = () => {
+    const q = document.getElementById("aq").value.trim().toLowerCase(), a = document.getElementById("aa").value;
+    const rows = auditRows.filter(x => (!a || x.action === a) && (!q || JSON.stringify(x).toLowerCase().includes(q)));
+    const extra = x => auditText(x);
+    document.getElementById("at").innerHTML = `<tr><th>${tr("audit_at")}</th><th>${tr("audit_who")}</th><th>${tr("audit_what")}</th><th>${tr("audit_target")}</th><th>${tr("audit_detail")}</th></tr>`
+      + (rows.map(x => `<tr><td>${esc(new Date(x.at).toLocaleTimeString(lang === "ko" ? "ko-KR" : "en-US"))}</td><td>${esc(x.actor)}</td>
+          <td>${esc(AUDIT_ACT[lang][x.action] || x.action)}</td>
+          <td>${/^clm-/.test(x.target || "") ? `<a href="#" onclick="openClaim('${esc(x.target)}');return false">${esc(x.target)}</a>` : esc(x.target || "")}</td>
+          <td class="muted">${esc(extra(x))}</td></tr>`).join("") || `<tr><td colspan=5 class="muted">${tr("audit_none")}</td></tr>`);
+    return rows;
+  };
+  draw();
+  document.getElementById("aq").oninput = draw; document.getElementById("aa").onchange = draw;
+  document.getElementById("ad").onchange = e => openAudit(e.target.value, tz);
+  document.getElementById("atz").onchange = e => { localStorage.setItem("auditTz", e.target.value); openAudit(day, e.target.value); };
+  document.getElementById("acsv").onclick = () => {
+    api(`/api/audit?date=${day}&tz=${tz}&export=1`);  // the export itself goes into the audit trail
+    const rows = draw(), cell = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = ["at,actor,action,target,detail", ...rows.map(x => [x.at, x.actor, x.action, x.target, JSON.stringify(Object.fromEntries(Object.entries(x).filter(([k]) => !["at","actor","action","target"].includes(k))))].map(cell).join(","))].join("\n");
+    const link = Object.assign(document.createElement("a"), {href: URL.createObjectURL(new Blob(["\ufeff" + csv], {type: "text/csv"})), download: `tripclaim-audit-${day}.csv`});
+    link.click();
+  };
+}
+async function loadBulk() {  // bulk sends waiting for a second admin, shown in the operations menu
+  const b = document.getElementById("bulkq"); if (!b || !can("disrupt")) return;
+  const r = await api("/api/bulk"); if (r.error) return;
+  b.innerHTML = r.pending.length ? `<h4 style="margin-top:.8rem">${tr("bulkq_t")}</h4>` + r.pending.map(p => `<div class="bq">
+    ${esc(p.body.flight)} ${esc(p.body.date)} · ${tr("bk_count").replace("{n}", p.count)} · ${esc(p.by)}
+    <button onclick="bulkDo('${p.id}','confirm')" ${p.by === me.user ? `disabled title="${esc(tr("not_self"))}"` : ""}>${tr("bulk_send")}</button>
+    <button onclick="bulkDo('${p.id}','cancel')">${tr("cancel")}</button></div>`).join("") : "";
+}
+async function bulkDo(id, what) {
+  if (what === "confirm" && !await uiConfirm(tr("confirm_dec_q"))) return;
+  const r = await api(`/api/bulk/${id}/${what}`, {method:"POST"});
+  if (r.error) return uiAlert(r.error === "second_person_required" ? tr("not_self") : tr("noperm"));
+  if (r.alerted) uiAlert(tr("alerted").replace("{n}", r.alerted.length));
+  loadBulk(); loadList();
+}
+document.getElementById("tools").addEventListener("toggle", e => { if (e.target.open) loadBulk(); });
+// Operations KPIs: per disruption, AI quality, messaging cost, and any reply that broke the wording rules.
+// Original photos: fetched with the staff token (an <img> cannot send it), shown side by side when another claim had it first.
+async function docBlob(claim, doc) {
+  const r = await fetch(`/api/claims/${claim}/docs/${doc}`, {headers: hdrs()});
+  if (!r.ok) throw new Error(r.status);
+  return URL.createObjectURL(await r.blob());
+}
+async function viewDoc(claim, doc, twinClaim, twinDoc) {
+  const d = document.getElementById("imgv"), b = document.getElementById("ivb");
+  let rot = 0;
+  b.innerHTML = `<p class="muted">…</p>`; d.showModal();
+  try {
+    const urls = await Promise.all([docBlob(claim, doc), ...(twinClaim ? [docBlob(twinClaim, twinDoc)] : [])]);
+    const cap = [claim, twinClaim].filter(Boolean);
+    b.className = urls.length > 1 ? "two" : "";
+    b.innerHTML = urls.map((u, i) => `<figure><img src="${u}" alt=""><figcaption>${esc(cap[i])}${i ? ` · ${tr("first_upload")}` : ""}</figcaption></figure>`).join("");
+    b.querySelectorAll("img").forEach(img => img.onclick = () => img.classList.toggle("full"));
+  } catch (e) { b.innerHTML = `<p class="w">${tr("noperm")}</p>`; }
+  document.getElementById("ivt").textContent = twinClaim ? tr("compare") : tr("original");
+  document.getElementById("ivn").textContent = tr("iv_note");
+  document.getElementById("ivrot").textContent = tr("rotate");
+  document.getElementById("ivrot").onclick = () => { rot = (rot + 90) % 360; b.querySelectorAll("img").forEach(i => i.style.transform = `rotate(${rot}deg)`); };
+  document.getElementById("ivx").onclick = () => { d.close(); b.querySelectorAll("img").forEach(i => URL.revokeObjectURL(i.src)); };
+}
+let kpiDays = 7, lastKpi = null;
+// "us.anthropic.claude-opus-5-5" -> "Claude Opus 5.5 (미국 리전)": the raw id stays in the tooltip
+const modelName = id => { const [p, ...rest] = (id || "").split("."), m = (p in AREA ? rest.join(".") : id).replace(/^anthropic\./, "");
+  const name = m.replace(/^claude-([a-z]+)-(\d+)-(\d+).*/, (_, f, a, b) => `Claude ${f[0].toUpperCase() + f.slice(1)} ${a}.${b}`);
+  return p in AREA ? `${name} (${tr("area_" + p)})` : name; };
+const AREA = {us: 1, eu: 1, apac: 1, global: 1, jp: 1, au: 1, ca: 1};
+async function openKpi(days) {
+  current = null; drawList(); kpiDays = days || kpiDays;
+  const k = await api(`/api/kpi?days=${kpiDays}`); if (k.error) return uiAlert(tr("noperm"));
+  lastKpi = k;
+  const v = x => x == null ? "–" : x, q = k.quality, m = k.messaging;
+  const tile = (label, value, sub, n) => `<div class="tile ${n != null && n < 30 ? "few" : ""}"><small>${label}</small><b>${value}</b>${sub ? `<span>${sub}</span>` : ""}
+    ${n != null && n < 30 ? `<em>${tr("k_few").replace("{n}", n)}</em>` : ""}</div>`;
+  // 7-day trend lines: a rate needs its history, not one number
+  const spark = (xs, color) => { const m = Math.max(1, ...xs), w = 160, h = 34, X = i => i * w / (xs.length - 1), Y = x => h - 3 - (h - 6) * x / m;
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="${color}" stroke-width="2" points="${xs.map((x, i) => `${X(i)},${Y(x)}`).join(" ")}"/>
+      ${xs.map((x, i) => `<circle cx="${X(i)}" cy="${Y(x)}" r="2.2" fill="${color}"><title>${k.days[i]}: ${x}</title></circle>`).join("")}</svg>`; };
+  const peak = xs => { const n = Math.max(...xs); return n ? tr("k_peak").replace("{n}", n).replace("{d}", k.days[xs.indexOf(n)].slice(5).replace("-", "/")) : ""; };
+  const bl = k.blocked || {staff: 0, agent: 0, by_person: {}, items: []};
+  const ctl = k.control || {};
+  document.getElementById("detail").innerHTML = `<h2 style="margin:.1rem 0">${tr("t_kpi")}</h2>
+    <div class="kbar">${tr("k_period")}: ${[7, 30].map(n => `<button type="button" ${n === kpiDays ? 'class="primary"' : ""} onclick="openKpi(${n})">${tr("k_" + n)}</button>`).join("")}
+      <button type="button" onclick="kpiCsv()">${tr("k_export")}</button>
+</div>
+    <h3 class="kh">${tr("k_now")} <small class="muted">${tr("k_now_sub")}</small></h3>
+    <div class="tiles">
+      ${tile(tr("k_appeals"), ctl.appeals_open, `${tr("k_overdue")} ${ctl.appeals_overdue}`).replace('class="tile', ctl.appeals_overdue ? 'class="tile alarm' : 'class="tile')}
+      ${tile(tr("k_pending"), ctl.pending, ctl.pending_avg_h != null ? `${tr("k_avgwait")} ${ctl.pending_avg_h}h` : "")}
+      ${tile(tr("k_callbacks"), ctl.callbacks ?? 0, "")}
+    </div>
+    <h3 class="kh">${tr("k_flow")} <small class="muted">${k.period ? esc(tr("k_basis").replace("{from}", k.period.from).replace("{to}", k.period.to).replace("{n}", k.period.days)) : ""}</small></h3>
+    <div class="tiles">
+      ${tile(tr("k_cited"), `${v(q.cited_pct)}%`, tr("k_of").replace("{n}", q.replies), q.replies)}
+      ${tile(tr("k_changed"), `${v(q.changed_pct)}%`, tr("k_of").replace("{n}", q.decided), q.decided)}
+      ${tile(tr("k_retake"), `${v(q.retake_pct)}%`, tr("k_of").replace("{n}", q.docs), q.docs)}
+      ${tile(tr("k_appeals_total"), ctl.appeals, "")}
+      ${tile(tr("k_corrections"), ctl.corrections, "")}
+    </div>
+    <h3 class="kh">${tr("k_ops")} <small class="muted">${tr("k_ops_sub")}</small></h3>
+    <div class="tiles">
+      ${tile(tr("k_banned"), k.banned.length, k.banned.length ? tr("k_review") : tr("k_none")).replace('class="tile', k.banned.length ? 'class="tile alarm' : 'class="tile')}
+      ${tile(tr("k_blocked"), bl.staff + bl.agent, tr("k_blocked_sub").replace("{s}", bl.staff).replace("{a}", bl.agent)
+          + `<br>${tr("k_blocked_by").replace("{r}", bl.regex ?? 0).replace("{g}", bl.guardrail ?? 0)}`)}
+      ${tile(tr("k_regex_only"), bl.regex_only ?? 0, tr("k_regex_only_sub")).replace('class="tile', bl.regex_only ? 'class="tile alarm' : 'class="tile')}
+      ${tile(tr("k_errors"), q.agent_errors, "")}
+      ${tile(tr("k_fallbacks"), k.fallbacks ?? 0, tr("k_fallbacks_sub")).replace('class="tile', k.fallbacks ? 'class="tile alarm' : 'class="tile')}
+      ${k.processing ? tile(tr("k_where"), esc(k.processing.region), `<span title="${esc(k.processing.model)}">${esc(modelName(k.processing.model))}</span> · ${tr("k_fb")} ${k.processing.fallback ? `<span title="${esc(k.processing.fallback)}">${esc(modelName(k.processing.fallback))}</span>` : tr("k_fb_off")}`) : ""}
+      ${tile(tr("k_sms"), m.sms, `${tr("k_parts")} ${m.sms_parts} · $${m.cost_usd.toFixed(2)}`)}
+      ${tile(tr("k_support"), m.support_actions, "")}
+    </div>
+    ${k.series ? `<div class="card wide"><h3>${tr("k_trend").replace("{n}", k.days.length)} <small class="muted">${esc(k.days[0])} – ${esc(k.days.at(-1))}</small></h3><div class="trend">
+      ${[["created", "#1f4fd8"], ["submitted", "#0f8a5f"], ["decided", "#b45309"]].map(([s, col]) => `<div><small>${tr("k_s_" + s)}</small>${spark(k.series[s], col)}<b>${k.series[s].reduce((a, b) => a + b, 0)}</b><small class="pk">${peak(k.series[s])}</small></div>`).join("")}</div></div>` : ""}
+    <div class="card wide"><h3>${tr("k_events")}</h3><table><tr><th>${tr("k_event")}</th><th>${tr("k_claims")}</th><th>${tr("k_opened")}</th>
+      <th>${tr("k_submitted")}</th><th>${tr("k_decided")}</th><th>${tr("k_open")}</th><th>${tr("k_tsub")}</th><th>${tr("k_tdec")}</th></tr>
+      ${k.events.map(e => `<tr><td>${esc(e.event)}</td><td>${e.claims}</td><td>${e.opened} (${Math.round(100 * e.opened / e.claims)}%)</td>
+        <td>${e.submitted}</td><td>${e.full ?? 0} / ${e.partial ?? 0} / ${e.denied}</td><td>${e.open_checks}</td><td>${v(e.to_submit_h)}</td><td>${v(e.to_decide_h)}</td></tr>`).join("")}</table></div>
+    ${k.banned.length ? `<div class="card wide"><h3>${ic("alert")} ${tr("k_banned")}</h3>${k.banned.map(b => `<div class="log"><a href="#" onclick="openClaim('${esc(b.claim)}');return false">${esc(b.claim)}</a>
+      · <b>“${esc(b.phrase)}”</b> — ${esc(b.text)}</div>`).join("")}</div>` : ""}
+    ${bl.items.length ? `<div class="card wide"><h3>${ic("alert")} ${tr("k_blocked_list")}</h3>
+      <p>${Object.entries(bl.by_person).sort((a, b) => b[1] - a[1]).map(([p, n]) => `<b>${esc(p)}</b> ${n}`).join(" · ")}${bl.agent ? ` · <b>AI</b> ${bl.agent}` : ""}</p>
+      ${bl.items.slice().reverse().map(b => `<div class="log">${esc(shortWhen(b.at))} · ${esc(b.actor)} · ${esc(tr("w_" + b.where))} · <a href="#" onclick="openClaim('${esc(b.claim)}');return false">${esc(b.claim)}</a> · <b>“${esc(b.phrase)}”</b></div>`).join("")}</div>` : ""}
+    <p class="muted">${tr("k_note")}</p>`;
+}
+async function kpiCsv() {  // per disruption, for the period on screen; the export itself is in the audit trail
+  const k = await api(`/api/kpi?days=${kpiDays}&export=1`); if (k.error) return;
+  const head = ["event", "claims", "opened", "submitted", "full", "partial", "denied", "open_checks", "to_submit_h", "to_decide_h"];
+  const rows = [["basis", k.period.basis, k.period.from, k.period.to], [], head, ...k.events.map(e => head.map(h => e[h] ?? ""))];
+  rows.push([], ["day", ...k.days], ...["created", "submitted", "decided"].map(s => [s, ...k.series[s]]));
+  const c = k.control || {};  // backlog: every open item, whatever the period
+  rows.push([], ["backlog_now", "all claims"], ["appeals_open", c.appeals_open], ["appeals_overdue", c.appeals_overdue], ["pending_second_review", c.pending], ["callbacks_open", c.callbacks]);
+  rows.push([], ["blocked_staff", k.blocked.staff], ["blocked_ai", k.blocked.agent], ...Object.entries(k.blocked.by_person).map(([p, n]) => ["blocked_by", p, n]));
+  const csv = rows.map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], {type: "text/csv"}));
+  a.download = `tripclaim-kpi-${k.days[0]}_${k.days.at(-1)}.csv`; a.click();
+}
+document.getElementById("kpib").onclick = () => { document.getElementById("tools").open = false; openKpi(); };
+document.getElementById("auditb").onclick = () => { document.getElementById("tools").open = false; openAudit(); };
+// the disruption form starts on today's date in Japan (where the demo flight leaves)
+document.querySelector('#evt [name="date"]').value = new Date().toLocaleDateString("sv-SE", {timeZone: "Asia/Tokyo"});
+document.getElementById("evt").onsubmit = async e => {
+  e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
+  const ev = {...f, reason_category: /typhoon|storm|snow|weather|태풍|폭풍|폭설/i.test(f.reason) ? "weather" : "other", announced_at: `${f.date}T00:00+09:00`,
+              replacement_flight: `${f.flight} next day`, allowed_regions:["Tokyo","Chiba","Kanagawa"]};
+  if (!await bulkPreview(tr("confirm_disrupt").split("\n")[0].replace("{f}", f.flight).replace("{d}", f.date).replace("{t}", T[lang]["ev_" + f.type] || f.type),
+                         "/api/events/preview", ev)) return;
+  const r = await api("/api/events", {method:"POST", body:JSON.stringify(ev)});
+  if (r.error) return uiAlert(tr("noperm"));
+  if (r.pending) { document.getElementById("tools").open = false; return uiAlert(tr("bulk_waiting").replace("{n}", r.pending.count)); }
+  document.getElementById("tools").open = false;
+  uiAlert(tr("alerted").replace("{n}", r.alerted.length)); loadList();
+};
+document.getElementById("personas").onclick = async () => {
+  // the travelers' flight is on the date set in the disruption form above, so the alert reaches them
+  const r = await api("/api/demo/personas", {method:"POST", body:JSON.stringify({date: document.querySelector('#evt [name="date"]').value, depart: sessionStorage.getItem("demo_depart") || undefined})});  // a recording sets the replacement flight's time
+  if (r.error) return uiAlert(tr("noperm"));
+  document.getElementById("tools").open = false;
+  current = null; loadList();
+  document.getElementById("detail").innerHTML = `<h2 style="margin:.1rem 0">${tr("ptitle")}</h2><p class="muted">${tr("pnote")}</p>
+    <div class="card"><table><tr><th></th><th>${tr("pplan")}</th><th>${tr("pbought")}</th><th>${tr("pperiod")}</th><th>${tr("pexpect")}</th><th></th></tr>
+    ${r.personas.map(p => `<tr><td><b>${esc(p.name)}</b> <span class="loc">${esc(p.language.toUpperCase())}</span></td><td>${esc(p.plan)}</td>
+      <td>${esc(p.purchased_at.slice(0, 10))}</td><td>${esc(p.period)}</td><td>${esc(p.expect)}</td>
+      <td><a class="primary" href="${esc(p.chat)}" target="_blank" rel="noreferrer">${tr("popen")}</a></td></tr>`).join("")}</table></div>`;
+};
+document.getElementById("demoreset").onclick = async () => {
+  if (!await uiConfirm(tr("demoreset_q"))) return;
+  const r = await api("/api/demo/reset", {method:"POST"});
+  if (r.error) return uiAlert(tr("noperm"));
+  document.getElementById("tools").open = false; current = null; loadList();
+  document.getElementById("detail").innerHTML = "";
+  uiAlert(tr("demoreset_done").replace("{t}", r.removed.travelers).replace("{c}", r.removed.claims).replace("{d}", r.removed.documents).replace("{e}", r.removed.events));
+};
+// the phone opens in its own window beside the dashboard; it reads the same login from this tab
+document.getElementById("simphone").onclick = () => window.open("/phone", "tripclaim-phone", "popup,width=460,height=940");
+document.getElementById("remind").onclick = async () => {
+  if (!await bulkPreview(tr("t_remind"), "/api/reminders/preview", {})) return;
+  const r = await api("/api/reminders", {method:"POST"});
+  if (r.error) return uiAlert(tr("noperm"));
+  uiAlert(tr("reminded").replace("{n}", r.reminded.length));
+};
+document.querySelector('#evt [name=date]').value = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);  // today in Japan
+if (!cfg.auth) document.getElementById("logout").style.display = "none";
+document.querySelectorAll("[data-ic]").forEach(e => e.innerHTML = ic(e.dataset.ic));
+if (!window.redirecting) { paint(); loadMe(); loadList(); setInterval(() => { loadList(); if (current) openClaim(current, true); }, 5000); }
+</script>
+</body>
+</html>

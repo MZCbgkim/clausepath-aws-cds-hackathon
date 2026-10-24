@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ClausePath — phone simulator</title>
+<script src="/config.js"></script>
+<!-- Demo only. A traveler's phone: the SMS/RCS the real router sent to their number arrive here, and what is typed
+     here goes back as an inbound SMS/RCS through the same inbound path a carrier event takes. Only the carrier is
+     simulated. Data comes from /api/sim/phone (admins; opened from the dashboard, which shares its login). -->
+<style>
+  :root { --ink:#1b2230; --muted:#6b7280; --line:#e5e7eb; --blue:#1f4fd8; --rcs:#6b4bd8; --sms:#4b5563 }
+  * { box-sizing:border-box }
+  body { margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; gap:.7rem; padding:.8rem;
+         font:15px/1.45 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+         background:radial-gradient(circle at 50% 0, #2b3350, #11141d 70%); color:#e8ebf3 }
+  .top { display:flex; align-items:center; gap:.5rem; width:390px; max-width:100% }
+  .top select { flex:1; min-width:0; height:34px; border-radius:9px; border:1px solid #3a4260; background:#1b2030; color:#e8ebf3; padding:0 .5rem; font:inherit; font-size:14px }
+  .pill { flex-shrink:0; font-size:12px; padding:.2rem .55rem; border-radius:99px; background:#3b2f0b; color:#ffd666; border:1px solid #6b5514 }
+  .phone { position:relative; width:390px; height:min(844px, calc(100vh - 110px)); max-width:100%; border-radius:48px; padding:12px;
+           background:#0b0d12; box-shadow:0 0 0 2px #2c3142, 0 30px 80px rgba(0,0,0,.55) }
+  .screen { position:relative; height:100%; border-radius:38px; overflow:hidden; background:#fff; color:var(--ink); display:flex; flex-direction:column }
+  .notch { position:absolute; top:8px; left:50%; transform:translateX(-50%); width:110px; height:30px; border-radius:20px; background:#0b0d12; z-index:5 }
+  .status { height:46px; flex-shrink:0; display:flex; align-items:flex-end; justify-content:space-between; padding:0 26px 6px; font-size:14px; font-weight:600 }
+  .status .sig { letter-spacing:1px; font-size:12px }
+  /* messages app */
+  .app { position:absolute; inset:46px 0 58px; display:flex; flex-direction:column; transition:transform .35s cubic-bezier(.2,.8,.2,1) }
+  .hd { display:flex; flex-direction:column; align-items:center; gap:.15rem; padding:.3rem 0 .55rem; border-bottom:1px solid var(--line); background:#f8f9fb }
+  .av { width:44px; height:44px; border-radius:50%; display:grid; place-items:center; background:linear-gradient(135deg, #3b6cf0, #1f4fd8); color:#fff; font-weight:700 }
+  .hd b { font-size:15px } .hd small { color:var(--muted); font-size:12px }
+  .hd .ver { color:var(--rcs); font-weight:600 }
+  .log { flex:1; overflow:auto; padding:.8rem .7rem; display:flex; flex-direction:column; gap:.35rem; background:#fff }
+  .day { align-self:center; color:var(--muted); font-size:12px; margin:.3rem 0 }
+  .b { max-width:78%; padding:.5rem .75rem; border-radius:18px; white-space:pre-wrap; word-break:break-word; font-size:15px; animation:bin .3s cubic-bezier(.2,.8,.2,1) both }
+  .b.out { align-self:flex-start; background:#eceef2; border-bottom-left-radius:5px }
+  .b.in { align-self:flex-end; background:var(--blue); color:#fff; border-bottom-right-radius:5px }
+  .b.old { animation:none }
+  .b a { color:inherit; text-decoration:underline; word-break:break-all; cursor:pointer }
+  .meta { font-size:11px; color:var(--muted); margin:-.1rem .4rem .25rem } .meta.out { align-self:flex-start } .meta.in { align-self:flex-end }
+  .meta i { font-style:normal; font-weight:700; padding:0 .3rem; border-radius:4px; font-size:10px; color:#fff; background:var(--sms) } .meta i.rcs { background:var(--rcs) }
+  .typing { align-self:flex-start; background:#eceef2; border-radius:18px; padding:.6rem .8rem; display:flex; gap:4px }
+  .typing span { width:7px; height:7px; border-radius:50%; background:#9aa1ad; animation:dot 1.2s infinite } .typing span:nth-child(2) { animation-delay:.15s } .typing span:nth-child(3) { animation-delay:.3s }
+  .empty { margin:auto; color:var(--muted); text-align:center; font-size:14px; padding:0 2rem }
+  .cmp { display:flex; gap:.4rem; padding:.5rem .6rem .9rem; border-top:1px solid var(--line); background:#f8f9fb }
+  .cmp input { flex:1; min-width:0; height:40px; border-radius:20px; border:1px solid var(--line); padding:0 .9rem; font:inherit; font-size:15px; background:#fff }
+  .cmp button { width:40px; height:40px; border-radius:50%; border:0; background:var(--blue); color:#fff; font-size:18px; cursor:pointer } .cmp button:disabled { opacity:.35 }
+  /* the browser a link opens */
+  .web { position:absolute; inset:46px 0 58px; display:flex; flex-direction:column; background:#fff; transform:translateX(100%);
+         transition:transform .35s cubic-bezier(.2,.8,.2,1) }
+  .browsing .web { transform:none } .browsing .app { transform:translateX(-30%) }
+  .bar { display:flex; align-items:center; gap:.4rem; padding:.35rem .6rem; border-bottom:1px solid var(--line); background:#f8f9fb }
+  .bar button { border:0; background:none; color:var(--blue); font:inherit; font-size:14px; cursor:pointer; padding:.2rem .2rem; white-space:nowrap }
+  .bar .url { flex:1; min-width:0; background:#eceef2; border-radius:9px; padding:.25rem .6rem; font-size:12.5px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+  .web iframe { flex:1; width:100%; border:0 } .web iframe:not([src]) { display:none } .web iframe[src] + .empty { display:none }
+  /* a text arriving while the browser is open */
+  .ban { position:absolute; left:10px; right:10px; top:52px; z-index:6; background:rgba(245,246,250,.97); color:var(--ink); border-radius:16px; padding:.55rem .75rem;
+         box-shadow:0 8px 24px rgba(0,0,0,.18); font-size:13.5px; transform:translateY(-160%); opacity:0; transition:transform .35s cubic-bezier(.2,.8,.2,1), opacity .2s; cursor:pointer }
+  .ban.on { transform:none; opacity:1 } .ban b { display:block; font-size:12.5px }
+  .ban span { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden }
+  /* Mail: unlike texts, these went out for real through Amazon SES */
+  .dock { position:absolute; left:0; right:0; bottom:0; height:58px; display:flex; border-top:1px solid var(--line); background:#f8f9fb; z-index:4 }
+  .dock button { flex:1; border:0; background:none; font:inherit; font-size:12px; color:var(--muted); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; cursor:pointer; position:relative }
+  /* line icons, not emoji: color emoji are re-rastered on repaints and visibly change size */
+  .dock button svg { width:23px; height:23px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linejoin:round; stroke-linecap:round }
+  .dock button.on { color:var(--blue); font-weight:600 } .dock button.on svg { stroke-width:2 }
+  .dock .cnt[hidden] { display:none }  /* "0" never shows: the badge counts what is new */
+  .dock .cnt { position:absolute; top:6px; left:calc(50% + 8px); min-width:18px; height:18px; border-radius:9px; background:#dd344c; color:#fff; font-size:11px; font-weight:700; display:grid; place-items:center; padding:0 5px }
+  .mail { position:absolute; inset:46px 0 58px; background:#fff; display:none; flex-direction:column; z-index:3 }
+  .mailing .mail { display:flex }
+  .mail .mh { padding:.6rem .9rem .5rem; border-bottom:1px solid var(--line); background:#f8f9fb }
+  .mail .mh b { font-size:20px } .mail .mh small { display:block; color:var(--muted); font-size:12px }
+  .mail .list { flex:1; overflow:auto }
+  .mi { padding:.65rem .9rem; border-bottom:1px solid var(--line); cursor:pointer; animation:bin .3s cubic-bezier(.2,.8,.2,1) both }
+  .mi.old { animation:none } .mi .r1 { display:flex; justify-content:space-between; gap:.5rem; font-size:14px } .mi .r1 span { color:var(--muted); font-size:12px; white-space:nowrap }
+  .mi .sj { font-size:14px; font-weight:600; margin:.1rem 0 } .mi .sn { font-size:13px; color:var(--muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden }
+  .ses { display:inline-flex; align-items:center; gap:.25rem; margin-top:.3rem; font-size:11px; font-weight:700; color:#0f8a5f; background:#e8f6ef; border-radius:6px; padding:.1rem .4rem }
+  .md { position:absolute; inset:0; background:#fff; display:none; flex-direction:column }
+  .md.on { display:flex } .md .bar2 { padding:.45rem .6rem; border-bottom:1px solid var(--line); background:#f8f9fb }
+  .md .bar2 button { border:0; background:none; color:var(--blue); font:inherit; font-size:14px; cursor:pointer }
+  .md .body { flex:1; overflow:auto; padding:.8rem .9rem 1rem } .md h3 { margin:.1rem 0 .4rem; font-size:17px }
+  .md .fr { font-size:12.5px; color:var(--muted); margin-bottom:.6rem } .md pre { white-space:pre-wrap; word-break:break-word; font:inherit; font-size:14px; margin:0 }
+  .md pre a { color:var(--blue); text-decoration:underline; cursor:pointer; word-break:break-all }
+  .md .proof { margin-top:.9rem; padding:.55rem .65rem; border-radius:10px; background:#e8f6ef; color:#0b5e40; font-size:12px; line-height:1.45 }
+  .note { width:390px; max-width:100%; color:#aab2c8; font-size:12px; text-align:center; margin:0 }
+  @keyframes bin { from { opacity:0; transform:translateY(8px) scale(.98) } to { opacity:1; transform:none } }
+  @keyframes dot { 0%, 60%, 100% { opacity:.35; transform:none } 30% { opacity:1; transform:translateY(-3px) } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important } }
+</style>
+</head>
+<body>
+<div class="top"><select id="who" aria-label="traveler"></select><span class="pill" id="pill"></span></div>
+<div class="phone"><div class="screen" id="screen">
+  <div class="notch"></div>
+  <div class="status"><span id="clock"></span><span class="sig">▂▄▆█ 5G</span></div>
+  <div class="app">
+    <div class="hd"><div class="av" id="av">S</div><b id="from"></b><small id="via"></small></div>
+    <div class="log" id="log"></div>
+    <form class="cmp" id="cmp"><input id="t" autocomplete="off"><button id="go" aria-label="send">↑</button></form>
+  </div>
+  <div class="web"><div class="bar"><button type="button" id="back"></button><span class="url" id="url"></span></div><iframe id="frame" title="chat"></iframe><p class="empty" id="wempty"></p></div>
+  <div class="mail"><div class="mh"><b id="mt"></b><small id="maddr"></small></div><div class="list" id="mlist"></div>
+    <div class="md" id="md"><div class="bar2"><button type="button" id="mback"></button></div><div class="body" id="mbody"></div></div></div>
+  <div class="dock"><button type="button" id="tabm" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z"/></svg><span id="tabmt"></span><span class="cnt" id="scnt" hidden></span></button><button type="button" id="tabw"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.8 5.2 3.8 8.5s-1.2 6.1-3.8 8.5M12 3.5C9.4 5.9 8.2 8.7 8.2 12s1.2 6.1 3.8 8.5"/></svg><span id="tabwt"></span></button><button type="button" id="tabe"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></svg><span id="tabet"></span><span class="cnt" id="ecnt" hidden></span></button></div>
+  <div class="ban" id="ban"><b id="banf"></b><span id="bant"></span></div>
+</div></div>
+<p class="note" id="note"></p>
+<script>
+const T = {
+  en: {sim:"Simulated phone", note:"Texts: the messages ClausePath's router sent over SMS/RCS; carrier delivery (AWS End User Messaging) is simulated for the demo. Mail: sent for real through Amazon SES.",
+       type:"Text message", rcs:"RCS · business messaging", sms:"Text message · SMS", none:"No phone numbers yet. Create the demo personas on the dashboard, then report the disruption.",
+       empty:"No messages yet.", back:"‹ Messages", login:"Open this from the dashboard (Operations → Phone simulator).",
+       tabm:"SMS", tabw:"Web", tabe:"Mail", wempty:"Tap a link in a text to open it here.", inbox:"Inbox", mback:"‹ Inbox", nomail:"No email yet.", from:"From Sample Insurance · to",
+       live:"Sent by Amazon SES · live", proof:"Delivered for real through Amazon SES (not simulated). SES message ID:", local:"Local run: not sent"},
+  ko: {sim:"시뮬레이션 휴대폰", note:"문자: ClausePath 라우터가 SMS/RCS로 보낸 메시지예요. 통신사 발송(AWS End User Messaging)은 데모용 시뮬레이션이에요. 메일: Amazon SES로 실제 발송돼요.",
+       type:"문자 메시지", rcs:"RCS · 기업 메시지", sms:"문자 메시지 · SMS", none:"아직 전화번호가 있는 여행자가 없어요. 대시보드에서 데모 페르소나를 만들고 결항을 등록해 주세요.",
+       empty:"아직 메시지가 없어요.", back:"‹ 메시지", login:"대시보드(운영 → 휴대폰 시뮬레이터)에서 열어 주세요.",
+       tabm:"문자", tabw:"웹", tabe:"메일", wempty:"문자 속 링크를 누르면 여기서 열려요.", inbox:"받은편지함", mback:"‹ 받은편지함", nomail:"아직 메일이 없어요.", from:"보낸 사람 샘플손해보험 · 받는 사람",
+       live:"Amazon SES로 실제 발송", proof:"Amazon SES로 실제 발송된 메일이에요(시뮬레이션 아님). SES 메시지 ID:", local:"로컬 실행: 발송 안 됨"},
+};
+const L = (localStorage.getItem("lang") || (navigator.language.startsWith("ko") ? "ko" : "en")) === "ko" ? "ko" : "en", t = T[L];
+document.documentElement.lang = L;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+// links are stored masked (/c/••••ab12): tapping one asks the server for a fresh link to that claim
+const linkify = (s, cid) => esc(s).replace(/https?:\/\/[^\s<]+/g, u => `<a data-href="${u}" data-claim="${esc(cid)}">${u}</a>`);
+const hdrs = () => ({"content-type":"application/json", ...(sessionStorage.getItem("idt") ? {authorization:`Bearer ${sessionStorage.getItem("idt")}`} : {}),
+  ...(localStorage.getItem("demoUser") ? {"x-demo-user": localStorage.getItem("demoUser")} : {})});
+const api = async (p, opt = {}) => { const r = await fetch(p, {...opt, headers:hdrs()}); if (!r.ok) throw r.status; return r.json(); };
+$("pill").textContent = t.sim; $("note").textContent = t.note; $("back").textContent = t.back; $("t").placeholder = t.type;
+$("tabmt").textContent = t.tabm; $("tabwt").textContent = t.tabw; $("tabet").textContent = t.tabe; $("wempty").textContent = t.wempty; $("mt").textContent = t.inbox; $("mback").textContent = t.mback;
+const tick = () => $("clock").textContent = new Date().toLocaleTimeString(L === "ko" ? "ko-KR" : "en-US", {hour:"numeric", minute:"2-digit"});
+tick(); setInterval(tick, 20000);
+
+let smsSeen = 0;  // texts read: those that arrived while the SMS tab was open
+let tid = new URLSearchParams(location.search).get("t") || "", shownN = 0, sig = "", lastOut = 0, banTimer = 0;
+async function loadPhones() {
+  let d;
+  try { d = await api("/api/sim/phone"); } catch (e) { $("log").innerHTML = `<p class="empty">${t.login}</p>`; return; }
+  const sel = $("who"), prev = tid || sel.value;
+  sel.innerHTML = d.phones.map(p => `<option value="${esc(p.id)}">${esc(p.name)} · ${esc(p.phone)}</option>`).join("");
+  if (!d.phones.length) { $("log").innerHTML = `<p class="empty">${t.none}</p>`; return; }
+  tid = d.phones.some(p => p.id === prev) ? prev : d.phones[0].id;
+  sel.value = tid;
+}
+$("who").onchange = () => { tid = $("who").value; $("frame").removeAttribute("src"); shownN = 0; sig = ""; lastOut = 0; mailSig = ""; mailN = 0; closeWeb(); tab("m"); history.replaceState(null, "", `?t=${encodeURIComponent(tid)}`); refresh(); refreshMail(); };
+
+async function refresh() {
+  if (!tid) return;
+  let d;
+  try { d = await api(`/api/sim/phone/${encodeURIComponent(tid)}`); } catch (e) { return; }
+  const ms = d.messages, s = JSON.stringify(ms.map(m => m.at + m.text)) + d.busy;
+  const rcs = ms.some(m => m.channel === "rcs");
+  $("from").textContent = d.traveler && ms.length ? "SampleIns" : (d.traveler ? d.traveler.name : "");
+  $("via").innerHTML = rcs ? `<span class="ver">✓</span> ${t.rcs}` : t.sms;
+  if (s === sig) return;
+  const first = !sig; sig = s;
+  const log = $("log");
+  log.innerHTML = ms.length ? ms.map((m, i) => `<div class="b ${m.direction}${first || i < shownN ? " old" : ""}">${linkify(m.text, m.claim_id)}</div>`
+      + `<div class="meta ${m.direction}"><i class="${m.channel}">${m.channel.toUpperCase()}</i> ${new Date(m.at).toLocaleTimeString(L === "ko" ? "ko-KR" : "en-US", {hour:"numeric", minute:"2-digit"})}</div>`).join("")
+    + (d.busy ? `<div class="typing"><span></span><span></span><span></span></div>` : "")
+    : `<p class="empty">${t.empty}</p>`;
+  const outs = ms.filter(m => m.direction === "out");
+  if (first || !$("screen").classList.contains("browsing") && !$("screen").classList.contains("mailing")) smsSeen = outs.length;
+  const unreadSms = outs.length - smsSeen; $("scnt").textContent = unreadSms; $("scnt").hidden = unreadSms <= 0;
+  if (!first && outs.length > lastOut && document.querySelector(".screen").classList.contains("browsing")) banner(outs.at(-1).text);
+  lastOut = outs.length; shownN = ms.length;
+  log.scrollTop = log.scrollHeight;
+}
+let banGo = null;
+function banner(text, from = "SampleIns", go = null) {
+  banGo = go; $("banf").textContent = from; $("bant").textContent = text;
+  $("ban").classList.add("on"); clearTimeout(banTimer); banTimer = setTimeout(() => $("ban").classList.remove("on"), 4500);
+}
+$("ban").onclick = () => { $("ban").classList.remove("on"); if (banGo) banGo(); else { tab("m"); closeWeb(); } };
+
+// a link in a text opens in the phone's browser, so the demo moves from SMS to the web chat on the same phone
+$("log").onclick = async e => {
+  const a = e.target.closest("a[data-href]"); if (!a) return;
+  let href = a.dataset.href;
+  if (href.includes("••••")) {
+    try { href = (await api(`/api/sim/phone/${encodeURIComponent(tid)}/link`, {method:"POST",
+      body:JSON.stringify({claim_id: a.dataset.claim, kind: href.includes("/secure/") ? "secure" : "chat"})})).url; } catch (err) { return; }
+  }
+  openWeb(href);
+};
+function openWeb(href) {
+  const u = new URL(href, location.href);
+  $("url").textContent = u.host + u.pathname;
+  $("frame").src = u.origin === location.origin ? u.pathname + u.search : href;
+  tab("w");
+}
+function closeWeb() { tab("m"); }
+$("back").onclick = closeWeb;
+
+$("cmp").onsubmit = async e => {
+  e.preventDefault();
+  const text = $("t").value.trim(); if (!text || !tid) return;
+  $("t").value = ""; $("go").disabled = true;
+  // the text shows the moment it is sent, with the reply's dots under it (the server's copy replaces both)
+  $("log").querySelector(".typing")?.remove();
+  $("log").insertAdjacentHTML("beforeend", `<div class="b in">${esc(text)}</div><div class="typing"><span></span><span></span><span></span></div>`);
+  $("log").scrollTop = $("log").scrollHeight;  // the next change on the server redraws the thread with it
+  try { await api(`/api/sim/phone/${encodeURIComponent(tid)}`, {method:"POST", body:JSON.stringify({text})}); } catch (err) { $("t").value = text; }
+  $("go").disabled = false; refresh();
+};
+
+// ---- Mail: the traveler's inbox, from /api/sim/phone/<id>/mail (sent through Amazon SES on a deployment) ----
+let mails = [], mailSig = "", mailN = 0, seen = 0;
+const fmt = at => new Date(at).toLocaleString(L === "ko" ? "ko-KR" : "en-US", {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
+// Three channels, three tabs: texts (SMS/RCS), the web page a text's link opened (it stays open), and email
+function tab(which) {
+  $("screen").classList.toggle("mailing", which === "e");
+  $("screen").classList.toggle("browsing", which === "w");
+  for (const k of ["m", "w", "e"]) $("tab" + k).classList.toggle("on", which === k);
+  if (which === "e") { seen = mails.length; $("ecnt").hidden = true; } else $("md").classList.remove("on");
+  if (which === "m") { smsSeen = lastOut; $("scnt").hidden = true; }
+}
+$("tabm").onclick = () => tab("m");
+$("tabw").onclick = () => tab("w");
+$("tabe").onclick = () => tab("e");
+async function refreshMail() {
+  if (!tid) return;
+  let d;
+  try { d = await api(`/api/sim/phone/${encodeURIComponent(tid)}/mail`); } catch (e) { return; }
+  $("maddr").textContent = d.to || "";  // the traveler's name: the demo inbox is a real address
+  const s2 = JSON.stringify(d.mail.map(m => m.at + m.subject));
+  if (s2 === mailSig) return;
+  const first = !mailSig, newer = d.mail.length - mailN;
+  mailSig = s2; mails = d.mail;
+  $("mlist").innerHTML = mails.length ? mails.map((m, i) => `<div class="mi${first || i >= newer ? " old" : ""}" data-i="${i}">
+      <div class="r1"><b>Sample Insurance</b><span>${esc(fmt(m.at))}</span></div><div class="sj">${esc(m.subject)}</div>
+      <div class="sn">${esc(m.text.slice(0, 160))}</div>${m.message_id ? `<span class="ses">✓ ${t.live}</span>` : `<span class="ses">${t.local}</span>`}</div>`).join("")
+    : `<p class="empty">${t.nomail}</p>`;
+  const onMail = $("screen").classList.contains("mailing");
+  if (!first && newer > 0) {
+    if (!onMail) banner(mails[0].subject, "✉️ Sample Insurance", () => { tab("e"); openMail(0); });
+  }
+  if (onMail) seen = mails.length;
+  const unread = mails.length - seen; $("ecnt").textContent = unread; $("ecnt").hidden = unread <= 0;
+  mailN = mails.length;
+}
+$("mlist").onclick = e => { const it = e.target.closest(".mi"); if (it) openMail(+it.dataset.i); };
+function openMail(i) {
+  const m = mails[i]; if (!m) return;
+  $("mbody").innerHTML = `<h3>${esc(m.subject)}</h3><div class="fr">${esc(t.from)} ${esc($("maddr").textContent)} · ${esc(fmt(m.at))}</div>
+    <pre>${linkify(m.text, m.claim_id)}</pre>
+    <div class="proof">${m.message_id ? `✓ ${esc(t.proof)} <b>${esc(m.message_id)}</b>` : esc(t.local)}</div>`;
+  $("md").classList.add("on"); $("mbody").scrollTop = 0;
+}
+$("mback").onclick = () => $("md").classList.remove("on");
+$("mbody").onclick = async e => {  // a link in an email opens in the phone's browser, like a link in a text
+  const a = e.target.closest("a[data-href]"); if (!a) return;
+  let href = a.dataset.href;
+  if (href.includes("••••")) {
+    const kind = href.includes("/secure/") ? "secure" : href.endsWith("/decision") ? "decision" : "chat";
+    try { href = (await api(`/api/sim/phone/${encodeURIComponent(tid)}/link`, {method:"POST", body:JSON.stringify({claim_id: a.dataset.claim, kind})})).url; } catch (err) { return; }
+  }
+  tab("m"); openWeb(href);
+};
+
+loadPhones().then(() => { refresh(); refreshMail(); });
+setInterval(refresh, 1500);
+setInterval(refreshMail, 3000);
+setInterval(loadPhones, 15000);
+</script>
+</body>
+</html>
