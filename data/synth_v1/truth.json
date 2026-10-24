@@ -1,0 +1,210 @@
+{
+ "L_ok": {
+  "doc_type": "airline_letter",
+  "flight": "XX123",
+  "date": "2026-10-05",
+  "passenger": "TAYLOR/JORDAN MR",
+  "status": "cancelled",
+  "delay_hours": null,
+  "reason_category": "weather",
+  "airline_provided": []
+ },
+ "L_wrongflight": {
+  "doc_type": "airline_letter",
+  "flight": "XX125",
+  "date": "2026-10-05",
+  "passenger": "TAYLOR/JORDAN MR",
+  "status": "cancelled",
+  "delay_hours": null,
+  "reason_category": "weather",
+  "airline_provided": []
+ },
+ "L_crew": {
+  "doc_type": "airline_letter",
+  "flight": "XX123",
+  "date": "2026-10-05",
+  "passenger": "TAYLOR/JORDAN MR",
+  "status": "cancelled",
+  "delay_hours": null,
+  "reason_category": "other",
+  "airline_provided": []
+ },
+ "L_hotelprovided": {
+  "doc_type": "airline_letter",
+  "flight": "XX123",
+  "date": "2026-10-05",
+  "passenger": "TAYLOR/JORDAN MR",
+  "status": "cancelled",
+  "delay_hours": null,
+  "reason_category": "weather",
+  "airline_provided": [
+   "accommodation",
+   "meals"
+  ]
+ },
+ "L_delay3h": {
+  "doc_type": "airline_letter",
+  "flight": "XX123",
+  "date": "2026-10-05",
+  "passenger": "TAYLOR/JORDAN MR",
+  "status": "delayed",
+  "delay_hours": 3.1,
+  "reason_category": "weather",
+  "airline_provided": []
+ },
+ "L_wrongname": {
+  "doc_type": "airline_letter",
+  "flight": "XX123",
+  "date": "2026-10-05",
+  "passenger": "TAYLOR/MORGAN MS",
+  "status": "cancelled",
+  "delay_hours": null,
+  "reason_category": "weather",
+  "airline_provided": []
+ },
+ "R_hotel": {
+  "doc_type": "receipt",
+  "merchant": "ベイサイド エアポートホテル",
+  "city": "Ota",
+  "prefecture": "Tokyo",
+  "datetime": "2026-10-06 09:12",
+  "currency": "JPY",
+  "total": 16500,
+  "categories": [
+   "accommodation"
+  ]
+ },
+ "R_hotel_minibar": {
+  "doc_type": "receipt",
+  "merchant": "ベイサイド エアポートホテル",
+  "city": "Ota",
+  "prefecture": "Tokyo",
+  "datetime": "2026-10-06 09:14",
+  "currency": "JPY",
+  "total": 18300,
+  "categories": [
+   "accommodation",
+   "minibar"
+  ]
+ },
+ "R_hotel_expensive": {
+  "doc_type": "receipt",
+  "merchant": "グランド スカイ ホテル東京",
+  "city": "Tokyo",
+  "prefecture": "Tokyo",
+  "datetime": "2026-10-06 10:02",
+  "currency": "JPY",
+  "total": 63000,
+  "categories": [
+   "accommodation"
+  ]
+ },
+ "R_dinner": {
+  "doc_type": "receipt",
+  "merchant": "らーめん 羽田亭",
+  "city": "Ota",
+  "prefecture": "Tokyo",
+  "datetime": "2026-10-05 19:42",
+  "currency": "JPY",
+  "total": 1880,
+  "categories": [
+   "meal"
+  ]
+ },
+ "R_lunch_before": {
+  "doc_type": "receipt",
+  "merchant": "カフェ ソラ",
+  "city": "Ota",
+  "prefecture": "Tokyo",
+  "datetime": "2026-10-05 12:10",
+  "currency": "JPY",
+  "total": 1350,
+  "categories": [
+   "meal"
+  ]
+ },
+ "R_dinner_after": {
+  "doc_type": "receipt",
+  "merchant": "居酒屋 つばさ",
+  "city": "Ota",
+  "prefecture": "Tokyo",
+  "datetime": "2026-10-06 20:30",
+  "currency": "JPY",
+  "total": 2400,
+  "categories": [
+   "meal"
+  ]
+ },
+ "R_taxi": {
+  "doc_type": "receipt",
+  "merchant": "東京エアタクシー",
+  "city": "Ota",
+  "prefecture": "Tokyo",
+  "datetime": "2026-10-06 13:05",
+  "currency": "JPY",
+  "total": 3200,
+  "categories": [
+   "local_transport"
+  ]
+ },
+ "R_osaka": {
+  "doc_type": "receipt",
+  "merchant": "なにわ食堂",
+  "city": "Osaka",
+  "prefecture": "Osaka",
+  "datetime": "2026-10-05 21:00",
+  "currency": "JPY",
+  "total": 2200,
+  "categories": [
+   "meal"
+  ]
+ },
+ "R_conbini": {
+  "doc_type": "receipt",
+  "merchant": "ファミリーストア 羽田空港店",
+  "city": "Ota",
+  "prefecture": "Tokyo",
+  "datetime": "2026-10-05 22:15",
+  "currency": "JPY",
+  "total": 3340,
+  "categories": [
+   "meal",
+   "phone_data"
+  ]
+ },
+ "R_dinner_dup": {
+  "doc_type": "receipt",
+  "merchant": "らーめん 羽田亭",
+  "city": "Ota",
+  "prefecture": "Tokyo",
+  "datetime": "2026-10-05 19:42",
+  "currency": "JPY",
+  "total": 1880,
+  "categories": [
+   "meal"
+  ]
+ },
+ "R_blurry": {
+  "doc_type": "receipt",
+  "merchant": "東京エアタクシー",
+  "city": "Ota",
+  "prefecture": "Tokyo",
+  "datetime": "2026-10-06 13:05",
+  "currency": "JPY",
+  "total": 3200,
+  "categories": [
+   "local_transport"
+  ],
+  "unreadable": true
+ },
+ "E_ok": {
+  "doc_type": "airline_letter",
+  "flight": "XX123",
+  "date": "2026-10-05",
+  "passenger": "Jordan Taylor",
+  "status": "cancelled",
+  "delay_hours": null,
+  "reason_category": "weather",
+  "airline_provided": []
+ }
+}

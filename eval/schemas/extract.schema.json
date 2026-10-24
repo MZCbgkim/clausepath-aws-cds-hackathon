@@ -1,0 +1,213 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "doc_type",
+    "legibility",
+    "confidence",
+    "letter",
+    "receipt"
+  ],
+  "properties": {
+    "doc_type": {
+      "type": "string",
+      "enum": [
+        "airline_letter",
+        "receipt",
+        "other"
+      ]
+    },
+    "legibility": {
+      "type": "string",
+      "enum": [
+        "good",
+        "poor",
+        "unreadable"
+      ]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "letter": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "flight",
+        "date",
+        "passenger",
+        "status",
+        "delay_hours",
+        "reason_text",
+        "reason_category",
+        "airline_provided"
+      ],
+      "properties": {
+        "flight": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "passenger": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "cancelled",
+            "delayed",
+            "departed",
+            "unknown"
+          ]
+        },
+        "delay_hours": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "reason_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason_category": {
+          "type": "string",
+          "enum": [
+            "weather",
+            "natural_disaster",
+            "mechanical",
+            "airport_closure",
+            "strike",
+            "other",
+            "unknown"
+          ]
+        },
+        "airline_provided": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "accommodation",
+              "meals",
+              "transport"
+            ]
+          }
+        }
+      }
+    },
+    "receipt": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "merchant",
+        "city",
+        "prefecture",
+        "datetime",
+        "service_date",
+        "currency",
+        "total",
+        "line_items"
+      ],
+      "properties": {
+        "merchant": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "city": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "datetime": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "service_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "currency": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "total": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "line_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "amount",
+              "category"
+            ],
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "amount": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "meal",
+                  "accommodation",
+                  "local_transport",
+                  "phone_data",
+                  "alcohol",
+                  "minibar",
+                  "sightseeing",
+                  "shopping",
+                  "other"
+                ]
+              }
+            }
+          }
+        },
+        "prefecture": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

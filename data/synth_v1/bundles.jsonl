@@ -1,0 +1,15 @@
+{"id": "B01", "note": "clean", "docs": ["L_ok", "R_hotel", "R_dinner", "R_taxi", "R_conbini"], "expected_flags": []}
+{"id": "B02", "note": "receipt before scheduled departure", "docs": ["L_ok", "R_hotel", "R_lunch_before"], "expected_flags": ["out_of_window"]}
+{"id": "B03", "note": "receipt after replacement departure", "docs": ["L_ok", "R_hotel", "R_dinner_after"], "expected_flags": ["out_of_window"]}
+{"id": "B04", "note": "letter flight number mismatch", "docs": ["L_wrongflight", "R_hotel"], "expected_flags": ["flight_mismatch"]}
+{"id": "B05", "note": "cause not covered (crew)", "docs": ["L_crew", "R_hotel"], "expected_flags": ["cause_not_covered"]}
+{"id": "B06", "note": "minibar on hotel bill", "docs": ["L_ok", "R_hotel_minibar"], "expected_flags": ["excluded_item"]}
+{"id": "B07", "note": "airline already provided hotel", "docs": ["L_hotelprovided", "R_hotel"], "expected_flags": ["airline_provided"]}
+{"id": "B08", "note": "duplicate receipt", "docs": ["L_ok", "R_dinner", "R_dinner_dup"], "expected_flags": ["duplicate"]}
+{"id": "B09", "note": "hotel above daily limit", "docs": ["L_ok", "R_hotel_expensive"], "expected_flags": ["over_daily_limit"]}
+{"id": "B10", "note": "unreadable receipt", "docs": ["L_ok", "R_blurry"], "expected_flags": ["retake"]}
+{"id": "B11", "note": "delay below 4h", "docs": ["L_delay3h", "R_dinner"], "expected_flags": ["delay_below_threshold"]}
+{"id": "B12", "note": "receipt from another city", "docs": ["L_ok", "R_osaka"], "expected_flags": ["location_mismatch"]}
+{"id": "B13", "note": "clean, letter by forwarded email", "docs": ["E_ok", "R_hotel", "R_dinner"], "expected_flags": []}
+{"id": "B14", "note": "passenger name mismatch", "docs": ["L_wrongname", "R_hotel"], "expected_flags": ["name_mismatch"]}
+{"id": "B15", "note": "no airline letter", "docs": ["R_hotel", "R_dinner"], "expected_flags": ["missing_airline_letter"]}
