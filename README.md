@@ -8,6 +8,8 @@ the insurer by email. Built on AWS Communication Developer Services and Amazon B
 
 [![ClausePath demo video](https://img.youtube.com/vi/h68LbldHlqU/maxresdefault.jpg)](https://youtu.be/h68LbldHlqU)
 
+**Judges:** the live deployment, logins and a 10-minute walkthrough are in [Testing instructions for judges](#testing-instructions-for-judges).
+
 ## The problem
 
 When a typhoon cancels a flight, travelers have one question and nobody to ask: *is my hotel covered, and what do I
@@ -198,7 +200,8 @@ Run: `python eval/runners/run_coverage.py`, `run_extract.py --data data/synth_v1
 
 ## Testing instructions for judges
 
-Dashboard: https://19ui9qognk.execute-api.us-east-1.amazonaws.com/
+**Dashboard:** https://19ui9qognk.execute-api.us-east-1.amazonaws.com/ (opens in English unless your browser is set to
+Korean; switch with **EN / 한국어** at the top right).
 
 Judge logins (demo data only; **valid until 2026-11-19**, then disabled and the deployment taken down):
 
@@ -207,22 +210,66 @@ Judge logins (demo data only; **valid until 2026-11-19**, then disabled and the 
 | Admin and first reviewer | `judge@clausepath.example` | `Judge-oIH1bveAGPMK1!` |
 | Second reviewer (open in a private window) | `judge2@clausepath.example` | `Judge-lvNep2t-eR602!` |
 
-Problems signing in: bgkim@megazone.com. No login needed to try it offline: `python -m tripclaim.sim --serve 8080` runs
-the full storyline locally without an AWS account (see [Run it locally](#run-it-locally-no-aws-messaging-needed)).
+Problems signing in: bgkim@megazone.com.
 
-1. Sign in as the admin. If a previous session left claims behind, use **Operations → Reset demo data**.
-2. **Operations → Demo personas** creates seven demo travelers on flight XX123 (fictional people and numbers).
-3. In **Operations**, report the disruption: flight `XX123`, today's date, `cancelled` → **Preview** → confirm.
-4. **Operations → Phone simulator** opens a phone; pick Jordan Taylor. The alert arrives in the **SMS** tab; reply by text.
-5. Tap the link in the text: the **Web** tab opens the same conversation. Ask about tonight's hotel, tap a citation,
-   then the clause map.
-6. Send photos with **Photo** (`python demo/make_assets.py --date <yesterday>` generates a matching set), fill in the
-   secure page, and submit.
-7. On the dashboard, decide the claim. Amounts over $100 need a second reviewer: confirm as the second login in a
-   private window. The decision arrives in the phone's **Mail** tab and in the chat.
-8. In the claim's message box, type "Good news, your hotel was approved." and send it: it is blocked.
+**Where the traveler's side is.** There is no real phone number in the demo, so the traveler's phone is the **phone
+simulator**: **Operations → Phone simulator**. It has three tabs — **SMS** (texts the router sent and the replies),
+**Web** (the same conversation as a web chat, exactly what the traveler's browser shows) and **Mail** (the emails sent
+by Amazon SES). Carrier delivery is simulated and labelled as such; everything else is the deployed system.
 
-Offline: `python -m tripclaim.sim` reproduces the full storyline; `demo/out/packet.html` is the packet the insurer receives.
+### 10-minute walkthrough
+
+Red boxes mark where to click and what to look at. Screenshots are from the deployed system (the demo recording).
+
+**1. Set up the demo.** Sign in as `judge@…`. Open **Operations** → **Reset demo data**, then **Demo personas**: seven
+fictional travelers on flight XX123, each with a different plan.
+
+<img src="docs/evaluate/1-operations.png" width="720" alt="Operations menu with Demo personas, Phone simulator and Reset demo data">
+
+**2. Report the disruption.** In **Operations**: flight `XX123`, today's date, `cancelled` → **Flight disrupted** →
+check the preview → send. Only travelers whose plan covers delays are alerted; each claim records the channel chosen and why.
+
+<img src="docs/evaluate/2-report-disruption.png" width="49%" alt="Preview: who gets the alert, by which channel, and the text"> <img src="docs/evaluate/2-channel-reason.png" width="49%" alt="The claim shows the alert and why this channel was used">
+
+**3. Be the traveler: SMS.** **Operations → Phone simulator**, pick **Jordan Taylor**. The alert is in the **SMS** tab.
+Reply, e.g. "Do I need to keep my receipts?" — the agent answers by text.
+
+<img src="docs/evaluate/3-sms.png" width="520" alt="Phone simulator: the alert by SMS/RCS, a question and the answer by text">
+
+**4. The same conversation in a web chat.** Tap the link in the text: the **Web** tab opens the same conversation (no
+app, no login). Ask "Is my hotel last night covered?" — the answer cites clauses.
+
+<img src="docs/evaluate/4-web-chat.png" width="520" alt="Web tab: the same conversation; an answer with a numbered citation">
+
+**5. The clause and the clause map.** Tap a citation number: the exact clause is highlighted on the policy page. Open
+the clause map: follow the links to the plan's limit (PLAN-2, USD 150 a day on Plus) and what is never paid (TD-4).
+
+<img src="docs/evaluate/5-clause-map.png" width="780" alt="Highlighted clause; clause map with the exclusion; the limit by plan">
+
+**6. Send documents.** **Photo** in the chat — any receipt works, or download the samples in [`demo/assets/`](demo/assets/)
+(including a blurry one). A blurry photo gets a retake request; on the desk, every document shows what was read and
+why a check failed (unreadable, minibar not covered with the clause). Fill in the secure page and **Submit** in the chat.
+
+<img src="docs/evaluate/6-retake.png" width="260" alt="Retake requested for a blurry receipt"> <img src="docs/evaluate/6-desk-checks.png" width="520" alt="Desk: what was read from each document and which checks failed">
+
+**7. Decide.** On the desk, the claim packet was sent to the insurer by **Amazon SES** (message ID shown). Decide the
+claim; over USD 100, open the claim as `judge2@…` in a private window and **Confirm and send**. The decision arrives
+in the phone's **Mail** tab, then in the chat.
+
+<img src="docs/evaluate/7-packet-ses.png" width="49%" alt="Claim packet sent by Amazon SES, with the SES message ID"> <img src="docs/evaluate/7-second-reviewer.png" width="49%" alt="Waiting for a second reviewer">
+
+**8. Try to promise.** In the claim's message box type "Good news, your hotel was approved." and send: it is blocked —
+decisions go out only as templates.
+
+<img src="docs/evaluate/8-blocked.png" width="720" alt="The free-text message stating a decision is blocked">
+
+Several judges may share the deployment: if you see someone else's claims, **Reset demo data** starts clean.
+
+**In the code:** CDS calls are listed with file paths in [the CDS table](#how-aws-cds-is-used);
+the evaluation results are in [Evaluation](#evaluation).
+
+**Without a login:** `python -m tripclaim.sim --serve 8080` runs the same storyline locally without an AWS account (see
+[Run it locally](#run-it-locally-no-aws-messaging-needed)); `demo/out/packet.html` is the packet the insurer receives.
 
 ## Run it locally (no AWS messaging needed)
 
