@@ -126,3 +126,16 @@ def test_malformed_receipt_date_asks_for_retake(env):
     assert res is not None
     [doc] = svc.repo.documents(claim_id)
     assert doc["flags"][0]["code"] == "retake" and "not readable" in doc["flags"][0]["detail"]
+
+
+def test_daily_llm_cap_stops_model_calls(env):
+    svc, outbox = env["svc"], env["outbox"]
+    svc.on_disruption(dict(EVENT))
+    import dataclasses
+    svc.s = dataclasses.replace(svc.s, llm_daily_cap=1)
+    calls = []
+    run = svc.agent.run
+    svc.agent.run = lambda *a, **k: calls.append(1) or run(*a, **k)
+    svc.handle_inbound(wa("YES. Is my hotel covered?"))
+    res = svc.handle_inbound(wa("And dinner?"))
+    assert len(calls) == 1 and "daily limit" in res["reply"] and outbox[-1]["text"] == res["reply"]

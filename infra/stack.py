@@ -106,7 +106,7 @@ class ClausePathStack(Stack):
             "FALLBACK_MODEL_ID": ("global." + env("MODEL_ID", "us.anthropic.claude-opus-5-5").split(".", 1)[1])
                                  if str(self.node.try_get_context("allow_global_fallback")).lower() == "true" else "",
             "WA_PHONE_NUMBER_ID": env("WA_PHONE_NUMBER_ID", ""), "SMS_ORIGINATION_IDENTITY": env("SMS_ORIGINATION_IDENTITY", ""),
-            "RCS_AGENT_ID": env("RCS_AGENT_ID", ""), "SIM_PHONE": env("SIM_PHONE", ""), "DEMO_EMAIL": env("DEMO_EMAIL", ""), "SMS_CONFIGURATION_SET": env("SMS_CONFIGURATION_SET", ""),
+            "RCS_AGENT_ID": env("RCS_AGENT_ID", ""), "SIM_PHONE": env("SIM_PHONE", ""), "LLM_DAILY_CAP": env("LLM_DAILY_CAP", "300"), "DEMO_EMAIL": env("DEMO_EMAIL", ""), "SMS_CONFIGURATION_SET": env("SMS_CONFIGURATION_SET", ""),
             "EMAIL_FROM": env("EMAIL_FROM", "claims@example.com"), "CLAIMS_INBOX": env("CLAIMS_INBOX", "claim@example.com"),
             "REVIEWER_EMAIL": env("REVIEWER_EMAIL", "reviewer@example.com"),
             "REVIEW_LOCALE": env("REVIEW_LOCALE", "ko"),
@@ -177,10 +177,11 @@ class ClausePathStack(Stack):
             iam.PolicyStatement(actions=["ses:SendEmail", "ses:SendRawEmail"],
                                 resources=[f"arn:aws:ses:{self.region}:{self.account}:{k}/*" for k in ("identity", "configuration-set")])]
 
-        def fn(name, handler, timeout=60, memory=1024):
+        def fn(name, handler, timeout=60, memory=1024, concurrency=None):
+            # concurrency caps the functions that call Bedrock, so a public demo login cannot run up model costs
             f = lambda_.Function(self, name, runtime=lambda_.Runtime.PYTHON_3_13, architecture=lambda_.Architecture.ARM_64,
                                  handler=f"tripclaim.handlers.{handler}", code=code, timeout=Duration.seconds(timeout),
-                                 memory_size=memory, environment=dict(common_env))
+                                 memory_size=memory, environment=dict(common_env), reserved_concurrent_executions=concurrency)
             table.grant_read_write_data(f)
             bucket.grant_read_write(f)
             audit_bucket.grant_put(f)  # append only: Lambdas cannot read back, change or delete the audit copy
@@ -193,7 +194,7 @@ class ClausePathStack(Stack):
                 resources=[f"arn:aws:bedrock-agentcore:{self.region}:{self.account}:runtime/*"]))
             return f
 
-        inbound = fn("InboundFn", "inbound_sns.handler", timeout=300)
+        inbound = fn("InboundFn", "inbound_sns.handler", timeout=300, concurrency=2)
         inbound.add_event_source(sources.SnsEventSource(topic))
 
         email_in = fn("EmailInboundFn", "ses_inbound.handler", timeout=300)
@@ -209,7 +210,7 @@ class ClausePathStack(Stack):
         events.Rule(self, "ReminderSchedule", schedule=events.Schedule.rate(Duration.hours(1)),
                     targets=[targets.LambdaFunction(reminders)])
 
-        api_fn = fn("ApiFn", "api.handler", timeout=300)
+        api_fn = fn("ApiFn", "api.handler", timeout=300, concurrency=5)
         http = apigw.HttpApi(self, "Api", api_name="tripclaim")
         api_int = integ.HttpLambdaIntegration("ApiInt", api_fn)
 

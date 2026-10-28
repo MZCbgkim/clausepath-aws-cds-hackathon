@@ -87,6 +87,13 @@ class MemoryBackend:
         item.update(json.loads(json.dumps(fields)))
         return json.loads(json.dumps(item))
 
+    def take(self, pk, sk, cap):
+        item = self.items.setdefault((pk, sk), {"PK": pk, "SK": sk, "n": 0})
+        if item["n"] >= cap:
+            return False
+        item["n"] += 1
+        return True
+
 
 def _to_dynamo(value):
     return json.loads(json.dumps(value), parse_float=Decimal)
@@ -153,6 +160,16 @@ class DynamoBackend:
                                      ReturnValues="ALL_NEW")
         return _from_dynamo(res["Attributes"])
 
+    def take(self, pk, sk, cap):
+        """Add one to a counter unless it already reached cap; atomic, so every Lambda shares the same count."""
+        try:
+            self.table.update_item(Key={"PK": pk, "SK": sk}, UpdateExpression="ADD n :one",
+                                   ConditionExpression="attribute_not_exists(n) OR n < :cap",
+                                   ExpressionAttributeValues={":one": 1, ":cap": cap})
+            return True
+        except self.table.meta.client.exceptions.ConditionalCheckFailedException:
+            return False
+
 
 # ---------- repository ----------
 
@@ -163,6 +180,9 @@ def _strip(item):
 class Repository:
     def __init__(self, backend):
         self.db = backend
+
+    def take_quota(self, name, cap):
+        return self.db.take("QUOTA", name, cap)
 
     # travelers
     def put_traveler(self, traveler):

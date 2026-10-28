@@ -26,6 +26,8 @@ class Settings:
     sim_phone: bool = field(default_factory=lambda: _env("SIM_PHONE", "").lower() in ("on", "1", "true"))
     # demo: the English persona (Jordan) gets this address so the decision letter goes out by SES (sandbox: verified)
     demo_email: str = field(default_factory=lambda: _env("DEMO_EMAIL", ""))
+    # public demo: model turns allowed per day across all travelers (0 = no cap); one inbound message or photo batch = one turn
+    llm_daily_cap: int = field(default_factory=lambda: int(_env("LLM_DAILY_CAP", "0") or 0))
     agent_runtime_arn: str = field(default_factory=lambda: _env("AGENT_RUNTIME_ARN", ""))   # set to run the agent on AgentCore
 
     # WhatsApp (AWS End User Messaging Social)

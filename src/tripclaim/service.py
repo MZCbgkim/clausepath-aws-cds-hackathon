@@ -307,6 +307,11 @@ class Service:
         gated = self._submit_gate(claim, traveler, inb)
         if gated:
             return gated
+        if self.s.llm_daily_cap and not self.repo.take_quota(f"llm#{self.clock().date().isoformat()}", self.s.llm_daily_cap):
+            reply = t(loc(traveler), "demo_limit")  # no model call: the message is saved, the daily demo budget is spent
+            msg = self.router.send(self.repo.get_traveler(traveler["id"]), claim["id"], "reply", reply, reply_on=inb.channel,
+                                   email_subject=("Re: " + inb.subject) if inb.subject else t(loc(traveler), "subject_claim"))
+            return {"claim_id": claim["id"], "reply": reply, "channel": msg["channel"] if msg else None}
         turn = {"claim_id": claim["id"], "channel": inb.channel, "subject": inb.subject, "acked": False, "ui": None, "steps": []}
         with self._turns_lock:
             self._turns[claim["id"]] = turn
