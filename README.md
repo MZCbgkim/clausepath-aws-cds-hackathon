@@ -198,9 +198,17 @@ Run: `python eval/runners/run_coverage.py`, `run_extract.py --data data/synth_v1
 
 ## Testing instructions for judges
 
-Dashboard: the `DashboardUrl` stack output. For a judge login, email **bgkim@megazone.com** (subject: "ClausePath judge
-access"). No login needed to try it offline: `python -m tripclaim.sim --serve 8080` runs the full storyline locally
-without an AWS account (see [Run it locally](#run-it-locally-no-aws-messaging-needed)).
+Dashboard: https://19ui9qognk.execute-api.us-east-1.amazonaws.com/
+
+Judge logins (demo data only; **valid until 2026-11-19**, then disabled and the deployment taken down):
+
+| Role | ID | Password |
+| --- | --- | --- |
+| Admin and first reviewer | `judge@clausepath.example` | `Judge-oIH1bveAGPMK1!` |
+| Second reviewer (open in a private window) | `judge2@clausepath.example` | `Judge-lvNep2t-eR602!` |
+
+Problems signing in: bgkim@megazone.com. No login needed to try it offline: `python -m tripclaim.sim --serve 8080` runs
+the full storyline locally without an AWS account (see [Run it locally](#run-it-locally-no-aws-messaging-needed)).
 
 1. Sign in as the admin. If a previous session left claims behind, use **Operations → Reset demo data**.
 2. **Operations → Demo personas** creates seven demo travelers on flight XX123 (fictional people and numbers).
